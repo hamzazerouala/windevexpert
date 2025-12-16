@@ -4,24 +4,43 @@ services:
     image: postgres:16
     restart: unless-stopped
     environment:
-      POSTGRES_USER: windev
-      POSTGRES_PASSWORD: windev
-      POSTGRES_DB: windevexpert
-    ports:
-      - "5432:5432"
+      POSTGRES_USER: ${POSTGRES_USER:-windev}
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:-windev}
+      POSTGRES_DB: ${POSTGRES_DB:-windevexpert}
     volumes:
       - db_data:/var/lib/postgresql/data
-  app:
-    build: .
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U ${POSTGRES_USER:-windev} -d ${POSTGRES_DB:-windevexpert}"]
+      interval: 5s
+      timeout: 5s
+      retries: 5
+
+  api:
+    build: 
+      context: .
+      dockerfile: Dockerfile
+    restart: unless-stopped
     depends_on:
-      - db
+      db:
+        condition: service_healthy
     environment:
-      DATABASE_URL: postgres://windev:windev@db:5432/windevexpert
-      JWT_SECRET: change_me
+      DATABASE_URL: postgres://${POSTGRES_USER:-windev}:${POSTGRES_PASSWORD:-windev}@db:5432/${POSTGRES_DB:-windevexpert}
+      JWT_SECRET: ${JWT_SECRET:-change_me}
       PORT: 8080
-      FRONTEND_URL: http://localhost:5173
+      # FRONTEND_URL should be set in Coolify environment variables to the actual public URL of the frontend
+      FRONTEND_URL: ${FRONTEND_URL:-http://localhost}
     ports:
       - "8080:8080"
+
+  web:
+    build:
+      context: ./frontend
+      dockerfile: Dockerfile
+    restart: unless-stopped
+    ports:
+      - "3000:80"
+    depends_on:
+      - api
+
 volumes:
   db_data:
-

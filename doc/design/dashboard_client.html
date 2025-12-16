@@ -1,0 +1,380 @@
+import React, { useState, useEffect } from 'react';
+import { 
+  Play, 
+  BookOpen, 
+  Award, 
+  Clock, 
+  Settings, 
+  LogOut, 
+  Layout, 
+  Menu, 
+  X, 
+  Sun, 
+  Moon, 
+  Code,
+  Search,
+  TrendingUp,
+  Download,
+  // Nouvelles icônes pour le menu
+  User,
+  Folder,
+  CreditCard,
+  FileText,
+  MessageSquare,
+  LifeBuoy
+} from 'lucide-react';
+
+// --- Styles Globaux ---
+const GlobalStyles = () => (
+  <style>{`
+    html { scroll-behavior: smooth; }
+    @keyframes blob {
+      0% { transform: translate(0px, 0px) scale(1); }
+      33% { transform: translate(30px, -50px) scale(1.1); }
+      66% { transform: translate(-20px, 20px) scale(0.9); }
+      100% { transform: translate(0px, 0px) scale(1); }
+    }
+    .animate-blob { animation: blob 7s infinite; }
+    .animation-delay-2000 { animation-delay: 2s; }
+  `}</style>
+);
+
+// --- Données Mockées (Profil & Cours) ---
+const USER = {
+  name: "Jean Dupont",
+  email: "jean.dupont@dev.com",
+  avatar: "https://i.pravatar.cc/150?u=a042581f4e29026704d",
+  plan: "Architecte", // Junior, Architecte, Lifetime
+  stats: {
+    courses_completed: 3,
+    hours_watched: 42,
+    certificates: 2,
+    current_streak: 5
+  }
+};
+
+const MY_COURSES = [
+  {
+    id: 1,
+    title: "WinDev : Architecture Orientée Objet Avancée",
+    progress: 75,
+    last_lesson: "Implémentation du Singleton en WLangage",
+    total_lessons: 42,
+    completed_lessons: 31,
+    image: "https://images.unsplash.com/photo-1555066931-4365d14bab8c?auto=format&fit=crop&q=80&w=600",
+    last_accessed: "Il y a 2 heures"
+  },
+  {
+    id: 2,
+    title: "API REST avec WebDev & Node.js",
+    progress: 30,
+    last_lesson: "Configuration du serveur Express",
+    total_lessons: 28,
+    completed_lessons: 9,
+    image: "https://images.unsplash.com/photo-1517694712202-14dd9538aa97?auto=format&fit=crop&q=80&w=600",
+    last_accessed: "Il y a 3 jours"
+  },
+  {
+    id: 3,
+    title: "HFSQL Client/Serveur : Performance",
+    progress: 100,
+    last_lesson: "Cours terminé",
+    total_lessons: 15,
+    completed_lessons: 15,
+    image: "https://images.unsplash.com/photo-1544383835-bda2bc66a55d?auto=format&fit=crop&q=80&w=600",
+    last_accessed: "Terminé le 10/12/2024",
+    certificate_url: "#"
+  }
+];
+
+// --- Composants UI ---
+
+const ProgressBar = ({ progress, className = "" }) => (
+  <div className={`w-full bg-slate-200 dark:bg-slate-800 rounded-full h-2 ${className}`}>
+    <div 
+      className="bg-yellow-400 h-2 rounded-full transition-all duration-500 ease-out shadow-[0_0_10px_rgba(250,204,21,0.3)]" 
+      style={{ width: `${progress}%` }}
+    ></div>
+  </div>
+);
+
+const SidebarItem = ({ icon: Icon, label, active, onClick }) => (
+  <button
+    onClick={onClick}
+    className={`flex items-center gap-3 w-full p-3 rounded-xl transition-all duration-200 group ${
+      active 
+        ? 'bg-yellow-400 text-slate-900 font-bold shadow-lg shadow-yellow-400/20' 
+        : 'text-slate-500 dark:text-slate-400 hover:bg-slate-100 dark:hover:bg-slate-800 hover:text-slate-900 dark:hover:text-white'
+    }`}
+  >
+    <Icon className={`w-5 h-5 ${active ? 'text-slate-900' : 'group-hover:text-yellow-500 transition-colors'}`} />
+    <span>{label}</span>
+  </button>
+);
+
+const StatCard = ({ icon: Icon, label, value, trend }) => (
+  <div className="bg-white dark:bg-slate-900 p-5 rounded-2xl border border-slate-200 dark:border-slate-800 shadow-sm hover:border-slate-300 dark:hover:border-slate-700 transition-colors group">
+    <div className="flex justify-between items-start mb-4">
+      <div className="w-10 h-10 rounded-full bg-slate-100 dark:bg-slate-800 flex items-center justify-center group-hover:bg-yellow-400/10 transition-colors">
+        <Icon className="w-5 h-5 text-slate-500 dark:text-slate-400 group-hover:text-yellow-500 transition-colors" />
+      </div>
+      {trend && (
+        <span className="text-xs font-bold text-green-500 bg-green-500/10 px-2 py-1 rounded flex items-center gap-1">
+          <TrendingUp className="w-3 h-3" /> {trend}
+        </span>
+      )}
+    </div>
+    <div className="text-2xl font-bold text-slate-900 dark:text-white mb-1">{value}</div>
+    <div className="text-xs text-slate-500 dark:text-slate-500 font-medium uppercase tracking-wide">{label}</div>
+  </div>
+);
+
+export default function StudentDashboard() {
+  const [isDark, setIsDark] = useState(true);
+  const [activeTab, setActiveTab] = useState('profile'); // Par défaut sur Profil
+  const [sidebarOpen, setSidebarOpen] = useState(false); // Mobile
+  const [searchQuery, setSearchQuery] = useState("");
+
+  const toggleTheme = () => setIsDark(!isDark);
+
+  // Fonction pour rendre le menu (DRY)
+  const renderMenu = (closeMobile = false) => {
+    const handleClick = (tab) => {
+      setActiveTab(tab);
+      if (closeMobile) setSidebarOpen(false);
+    };
+
+    return (
+      <div className="space-y-1">
+        <SidebarItem icon={User} label="Profil" active={activeTab === 'profile'} onClick={() => handleClick('profile')} />
+        <SidebarItem icon={BookOpen} label="Mes cours" active={activeTab === 'courses'} onClick={() => handleClick('courses')} />
+        <SidebarItem icon={Folder} label="Mes ressources" active={activeTab === 'resources'} onClick={() => handleClick('resources')} />
+        <SidebarItem icon={CreditCard} label="Mes paiements" active={activeTab === 'payments'} onClick={() => handleClick('payments')} />
+        <SidebarItem icon={FileText} label="Mes factures" active={activeTab === 'invoices'} onClick={() => handleClick('invoices')} />
+        <SidebarItem icon={MessageSquare} label="Messagerie" active={activeTab === 'messages'} onClick={() => handleClick('messages')} />
+        
+        <div className="my-4 border-t border-slate-100 dark:border-slate-800"></div>
+        
+        <SidebarItem icon={LifeBuoy} label="Support" active={activeTab === 'support'} onClick={() => handleClick('support')} />
+        <SidebarItem icon={Settings} label="Paramètres" active={activeTab === 'settings'} onClick={() => handleClick('settings')} />
+      </div>
+    );
+  };
+
+  return (
+    <div className={`${isDark ? 'dark' : ''} font-sans selection:bg-yellow-400 selection:text-black flex h-screen overflow-hidden bg-slate-50 dark:bg-slate-950 transition-colors duration-500`}>
+      <GlobalStyles />
+
+      {/* --- SIDEBAR (Desktop) --- */}
+      <aside className="hidden lg:flex flex-col w-64 bg-white dark:bg-slate-900 border-r border-slate-200 dark:border-slate-800 h-full relative z-20">
+        {/* Logo */}
+        <div className="p-6 flex items-center gap-2 border-b border-slate-100 dark:border-slate-800">
+          <div className="relative w-8 h-8 flex items-center justify-center bg-slate-100 dark:bg-slate-800 rounded-lg">
+            <Code className="w-4 h-4 text-yellow-500" />
+          </div>
+          <span className="font-bold text-slate-800 dark:text-slate-100">
+            Windev<span className="text-yellow-500">Expert</span>
+          </span>
+        </div>
+
+        {/* Navigation */}
+        <div className="flex-grow p-4 overflow-y-auto">
+          {renderMenu()}
+        </div>
+
+        {/* User Footer */}
+        <div className="p-4 border-t border-slate-200 dark:border-slate-800">
+          <div className="flex items-center gap-3 p-3 bg-slate-50 dark:bg-slate-800/50 rounded-xl">
+            <img src={USER.avatar} alt="User" className="w-10 h-10 rounded-full object-cover border-2 border-yellow-400" />
+            <div className="flex-grow min-w-0">
+              <div className="font-bold text-sm text-slate-900 dark:text-white truncate">{USER.name}</div>
+              <div className="text-xs text-yellow-600 dark:text-yellow-400 font-medium">{USER.plan}</div>
+            </div>
+            <button className="text-slate-400 hover:text-red-500 transition-colors"><LogOut className="w-4 h-4" /></button>
+          </div>
+        </div>
+      </aside>
+
+      {/* --- MOBILE SIDEBAR --- */}
+      {sidebarOpen && (
+        <div className="fixed inset-0 z-50 lg:hidden flex">
+          <div className="absolute inset-0 bg-slate-900/60 backdrop-blur-sm" onClick={() => setSidebarOpen(false)}></div>
+          <aside className="relative w-64 bg-white dark:bg-slate-900 h-full shadow-2xl flex flex-col p-4 animate-in slide-in-from-left duration-300">
+             <div className="flex justify-between items-center mb-8">
+               <span className="font-bold text-xl text-slate-900 dark:text-white">Menu</span>
+               <button onClick={() => setSidebarOpen(false)}><X className="w-6 h-6 text-slate-500" /></button>
+             </div>
+             <div className="flex-grow overflow-y-auto">
+               {renderMenu(true)}
+             </div>
+          </aside>
+        </div>
+      )}
+
+      {/* --- MAIN CONTENT --- */}
+      <main className="flex-grow flex flex-col h-full relative overflow-hidden">
+        
+        {/* Background Blobs (Fixed position inside main) */}
+        <div className="absolute top-0 right-0 w-[500px] h-[500px] bg-yellow-400/5 rounded-full blur-[100px] animate-blob pointer-events-none" />
+        <div className="absolute bottom-0 left-0 w-[400px] h-[400px] bg-indigo-500/5 rounded-full blur-[100px] animate-blob animation-delay-2000 pointer-events-none" />
+
+        {/* Top Header */}
+        <header className="flex items-center justify-between p-6 lg:px-10 border-b border-slate-200 dark:border-slate-800 bg-white/50 dark:bg-slate-950/50 backdrop-blur-sm sticky top-0 z-10">
+           <div className="flex items-center gap-4">
+              <button className="lg:hidden p-2 text-slate-600 dark:text-slate-400" onClick={() => setSidebarOpen(true)}>
+                 <Menu className="w-6 h-6" />
+              </button>
+              <div>
+                 <h1 className="text-xl font-bold text-slate-900 dark:text-white">Bonjour, {USER.name.split(' ')[0]} 👋</h1>
+                 <p className="text-xs text-slate-500 dark:text-slate-400 hidden sm:block">Prêt à continuer votre apprentissage ?</p>
+              </div>
+           </div>
+
+           <div className="flex items-center gap-4">
+              {/* Search Bar */}
+              <div className="hidden md:flex relative">
+                 <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-slate-400" />
+                 <input 
+                   type="text" 
+                   placeholder="Rechercher..." 
+                   className="pl-10 pr-4 py-2 bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-lg text-sm text-slate-900 dark:text-white focus:outline-none focus:ring-2 focus:ring-yellow-400/50 w-64 transition-all"
+                   value={searchQuery}
+                   onChange={(e) => setSearchQuery(e.target.value)}
+                 />
+              </div>
+
+              {/* Theme Toggle */}
+              <button onClick={toggleTheme} className="p-2 rounded-lg text-slate-600 dark:text-slate-400 hover:bg-slate-100 dark:hover:bg-slate-800 transition-colors">
+                 {isDark ? <Sun className="w-5 h-5" /> : <Moon className="w-5 h-5" />}
+              </button>
+           </div>
+        </header>
+
+        {/* Scrollable Content Area */}
+        <div className="flex-grow overflow-y-auto p-6 lg:p-10 scrollbar-hide">
+           <div className="max-w-6xl mx-auto space-y-10">
+              
+              {/* Stats Overview */}
+              <div className="grid grid-cols-2 md:grid-cols-4 gap-4 md:gap-6">
+                 <StatCard icon={BookOpen} label="Cours Terminés" value={USER.stats.courses_completed} trend="+1 ce mois" />
+                 <StatCard icon={Clock} label="Heures vues" value={`${USER.stats.hours_watched}h`} />
+                 <StatCard icon={Award} label="Certificats" value={USER.stats.certificates} />
+                 <StatCard icon={TrendingUp} label="Série (Jours)" value={USER.stats.current_streak} trend="En feu 🔥" />
+              </div>
+
+              {/* Resume Learning (Hero Card) */}
+              {MY_COURSES[0] && MY_COURSES[0].progress < 100 && (
+                <section>
+                   <h2 className="text-lg font-bold text-slate-900 dark:text-white mb-4 flex items-center gap-2">
+                      <Play className="w-5 h-5 text-yellow-500" /> Reprendre l'apprentissage
+                   </h2>
+                   <div className="bg-white dark:bg-slate-900 rounded-2xl p-6 border border-slate-200 dark:border-slate-800 shadow-xl flex flex-col md:flex-row gap-8 items-center group relative overflow-hidden">
+                      {/* Gradient Border Effect */}
+                      <div className="absolute top-0 left-0 w-1 h-full bg-yellow-400"></div>
+                      
+                      <div className="relative w-full md:w-64 h-40 rounded-xl overflow-hidden shrink-0">
+                         <div className="absolute inset-0 bg-black/30 group-hover:bg-black/10 transition-colors z-10 flex items-center justify-center">
+                            <div className="w-12 h-12 bg-white/20 backdrop-blur-md rounded-full flex items-center justify-center cursor-pointer hover:scale-110 transition-transform">
+                               <Play className="w-5 h-5 text-white fill-white ml-1" />
+                            </div>
+                         </div>
+                         <img src={MY_COURSES[0].image} alt="Course" className="w-full h-full object-cover" />
+                      </div>
+                      
+                      <div className="flex-grow w-full">
+                         <div className="flex justify-between items-start mb-2">
+                            <span className="text-xs font-bold text-yellow-600 dark:text-yellow-400 bg-yellow-400/10 px-2 py-1 rounded border border-yellow-400/20">En cours</span>
+                            <span className="text-xs text-slate-400 font-mono">{MY_COURSES[0].last_accessed}</span>
+                         </div>
+                         <h3 className="text-xl md:text-2xl font-bold text-slate-900 dark:text-white mb-2">{MY_COURSES[0].title}</h3>
+                         <p className="text-slate-500 dark:text-slate-400 text-sm mb-6 flex items-center gap-2">
+                            <Play className="w-3 h-3" /> Leçon actuelle : <span className="text-slate-700 dark:text-slate-300 font-medium">{MY_COURSES[0].last_lesson}</span>
+                         </p>
+                         
+                         <div className="space-y-2">
+                            <div className="flex justify-between text-xs font-bold text-slate-500 dark:text-slate-400">
+                               <span>Progression global</span>
+                               <span>{MY_COURSES[0].progress}%</span>
+                            </div>
+                            <ProgressBar progress={MY_COURSES[0].progress} className="h-3" />
+                         </div>
+                      </div>
+                   </div>
+                </section>
+              )}
+
+              {/* My Courses Grid */}
+              <section>
+                 <div className="flex justify-between items-end mb-6">
+                    <h2 className="text-lg font-bold text-slate-900 dark:text-white">Mes Cours Récents</h2>
+                    <button className="text-sm font-medium text-slate-500 hover:text-yellow-500 transition-colors">Voir tout</button>
+                 </div>
+                 
+                 <div className="grid md:grid-cols-2 xl:grid-cols-3 gap-6">
+                    {MY_COURSES.map(course => (
+                       <div key={course.id} className="bg-white dark:bg-slate-900 rounded-xl border border-slate-200 dark:border-slate-800 p-4 hover:border-slate-300 dark:hover:border-slate-700 transition-colors flex flex-col">
+                          <div className="flex gap-4 mb-4">
+                             <img src={course.image} alt="Thumb" className="w-20 h-20 rounded-lg object-cover shrink-0" />
+                             <div>
+                                <h4 className="font-bold text-slate-900 dark:text-white text-sm line-clamp-2 mb-2">{course.title}</h4>
+                                <div className="text-xs text-slate-500 dark:text-slate-400">
+                                   {course.completed_lessons}/{course.total_lessons} leçons
+                                </div>
+                             </div>
+                          </div>
+                          
+                          <div className="mt-auto space-y-3">
+                             {course.progress === 100 ? (
+                                <div className="flex items-center gap-2 text-green-500 text-sm font-bold bg-green-500/10 p-2 rounded-lg justify-center">
+                                   <Award className="w-4 h-4" /> Certifié
+                                </div>
+                             ) : (
+                                <>
+                                   <ProgressBar progress={course.progress} />
+                                   <div className="text-right text-xs font-bold text-slate-400">{course.progress}%</div>
+                                </>
+                             )}
+                             
+                             <button className={`w-full py-2 rounded-lg text-sm font-bold transition-colors ${
+                                course.progress === 100 
+                                  ? 'bg-slate-100 dark:bg-slate-800 text-slate-600 dark:text-slate-300 hover:bg-slate-200 dark:hover:bg-slate-700'
+                                  : 'bg-indigo-600 text-white hover:bg-indigo-500'
+                             }`}>
+                                {course.progress === 100 ? 'Voir le certificat' : 'Continuer'}
+                             </button>
+                          </div>
+                       </div>
+                    ))}
+                 </div>
+              </section>
+
+              {/* Certificates Section (Mini) */}
+              <section>
+                 <h2 className="text-lg font-bold text-slate-900 dark:text-white mb-4">Derniers Certificats</h2>
+                 <div className="bg-gradient-to-r from-slate-900 to-slate-800 rounded-2xl p-6 text-white relative overflow-hidden flex items-center justify-between">
+                    <div className="relative z-10">
+                       <div className="flex items-center gap-3 mb-2">
+                          <div className="p-2 bg-yellow-400 rounded-lg text-slate-900">
+                             <Award className="w-6 h-6" />
+                          </div>
+                          <h3 className="font-bold text-lg">HFSQL Client/Serveur : Expert</h3>
+                       </div>
+                       <p className="text-slate-400 text-sm mb-4 ml-14">Obtenu le 10 Décembre 2025</p>
+                       <button className="ml-14 flex items-center gap-2 text-sm font-bold hover:text-yellow-400 transition-colors">
+                          <Download className="w-4 h-4" /> Télécharger le PDF
+                       </button>
+                    </div>
+                    {/* Decor */}
+                    <div className="absolute right-0 bottom-0 opacity-10">
+                       <Award className="w-48 h-48 -rotate-12 translate-x-10 translate-y-10" />
+                    </div>
+                 </div>
+              </section>
+
+           </div>
+        </div>
+
+      </main>
+    </div>
+  );
+}

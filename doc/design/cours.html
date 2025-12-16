@@ -1,0 +1,536 @@
+import React, { useState, useEffect } from 'react';
+import { 
+  Play, 
+  Lock, 
+  CheckCircle, 
+  Clock, 
+  FileText, 
+  Award, 
+  Download, 
+  Users, 
+  Star, 
+  ChevronDown, 
+  ChevronUp, 
+  Monitor, 
+  Globe, 
+  MessageSquare,
+  Settings,
+  Code,
+  Sun,
+  Moon,
+  Menu,
+  X,
+  Share2,
+  AlertCircle
+} from 'lucide-react';
+
+// --- Styles Globaux ---
+const GlobalStyles = () => (
+  <style>{`
+    html { scroll-behavior: smooth; }
+    @keyframes blob {
+      0% { transform: translate(0px, 0px) scale(1); }
+      33% { transform: translate(30px, -50px) scale(1.1); }
+      66% { transform: translate(-20px, 20px) scale(0.9); }
+      100% { transform: translate(0px, 0px) scale(1); }
+    }
+    .animate-blob { animation: blob 7s infinite; }
+    .animation-delay-2000 { animation-delay: 2s; }
+  `}</style>
+);
+
+// --- Données Mockées (Détail du Cours) ---
+const COURSE = {
+  id: 1,
+  title: "WinDev : Architecture Orientée Objet Avancée",
+  subtitle: "Passez du procédural à l'objet. Maîtrisez les Design Patterns (Singleton, Factory, Observer) pour créer des applications maintenables et évolutives.",
+  description_html: `
+    <p class="mb-4">Vous développez en WinDev depuis des années, mais vous avez l'impression que vos projets deviennent de plus en plus difficiles à maintenir ? Vous entendez parler de <strong>POO</strong>, de <strong>SOLID</strong> et de <strong>Design Patterns</strong> sans savoir comment les appliquer concrètement en WLangage ?</p>
+    <p class="mb-4">Ce cours est conçu pour vous faire franchir un cap technique majeur.</p>
+    <p class="mb-4">Nous allons déconstruire les habitudes procédurales pour reconstruire une architecture logicielle robuste. Vous apprendrez à découpler votre interface (Fenêtres) de votre logique métier (Classes) et de vos données (HFSQL).</p>
+    <h3 class="text-xl font-bold mt-6 mb-3 text-slate-900 dark:text-white">Pourquoi ce cours ?</h3>
+    <ul class="list-disc pl-5 space-y-2 mb-6">
+      <li>Fini le code spaghetti dans les boutons "Clic".</li>
+      <li>Des classes réutilisables d'un projet à l'autre.</li>
+      <li>Une maintenance divisée par deux.</li>
+    </ul>
+  `,
+  level: "Expert",
+  updatedAt: "10 Décembre 2025",
+  language: "Français",
+  rating: 4.9,
+  reviews_count: 85,
+  students_count: 420,
+  duration: "12h 30m",
+  lessons_count: 42,
+  price: 190,
+  versions: ["WD25", "WD26", "WD27", "WD28"],
+  image: "https://images.unsplash.com/photo-1555066931-4365d14bab8c?auto=format&fit=crop&q=80&w=1200",
+  video_preview: "https://www.youtube.com/watch?v=dQw4w9WgXcQ", // Fake URL
+  objectives: [
+    "Comprendre et appliquer les principes SOLID en WLangage",
+    "Implémenter les Design Patterns : Singleton, Factory, Observer, Strategy",
+    "Créer une architecture en couches (UI, Business, Data)",
+    "Utiliser les interfaces et le polymorphisme pour découpler le code",
+    "Gérer les erreurs proprement avec les Exceptions personnalisées",
+    "Intégrer le Player WindevExpert dans votre flux de travail"
+  ],
+  prerequisites: [
+    "Connaissances solides de WinDev (3+ années d'expérience recommandées)",
+    "Avoir déjà manipulé des classes (même basiques)",
+    "Un ordinateur avec WinDev 25 ou supérieur installé"
+  ],
+  curriculum: [
+    {
+      title: "Introduction à l'Architecture Moderne",
+      duration: "45m",
+      lessons: [
+        { title: "Pourquoi l'objet ? Le coût de la dette technique", duration: "10:00", type: "video", isFree: true },
+        { title: "Analyse d'un projet 'Spaghetti' vs 'Objet'", duration: "15:30", type: "video", isFree: true },
+        { title: "Installation des outils et sources", duration: "05:00", type: "resource", isFree: false },
+      ]
+    },
+    {
+      title: "Les Piliers de la POO en WLangage",
+      duration: "2h 15m",
+      lessons: [
+        { title: "Encapsulation : Protéger vos membres", duration: "20:00", type: "video", isFree: false },
+        { title: "Héritage vs Composition : Le bon choix", duration: "25:00", type: "video", isFree: false },
+        { title: "Polymorphisme et Abstraction", duration: "30:00", type: "video", isFree: false },
+        { title: "Quiz : Concepts POO", duration: "10:00", type: "quiz", isFree: false },
+      ]
+    },
+    {
+      title: "Design Patterns Essentiels",
+      duration: "4h 30m",
+      lessons: [
+        { title: "Singleton : Gérer la connexion HFSQL", duration: "35:00", type: "video", isFree: false },
+        { title: "Factory : Création dynamique de fenêtres", duration: "40:00", type: "video", isFree: false },
+        { title: "Observer : Mettre à jour l'UI sans couplage", duration: "45:00", type: "video", isFree: false },
+        { title: "Projet Pratique : Refactoring d'un CRM", duration: "1h 30m", type: "project", isFree: false },
+      ]
+    }
+  ],
+  instructor: {
+    name: "Jean-Marc Windev",
+    title: "Architecte Logiciel Senior & Expert PC Soft",
+    avatar: "https://i.pravatar.cc/150?u=a042581f4e29026704d",
+    bio: "Développeur passionné depuis WinDev 5.5. J'ai accompagné plus de 50 entreprises dans la modernisation de leur parc applicatif. Je suis convaincu que le WLangage peut être aussi élégant que du C# ou du Java si on applique les bonnes méthodes.",
+    rating: 4.9,
+    courses_count: 12,
+    students: 2500
+  }
+};
+
+// --- Composants UI ---
+
+const Button = ({ children, variant = 'primary', className = '', ...props }) => {
+  const baseStyle = "px-6 py-3 rounded-lg font-bold transition-all duration-300 flex items-center justify-center gap-2 active:scale-95";
+  const variants = {
+    primary: "bg-yellow-400 text-slate-950 hover:bg-yellow-300 shadow-lg shadow-yellow-400/20 transform hover:-translate-y-0.5 border border-transparent",
+    outline: "border border-slate-300 text-slate-700 hover:border-yellow-500 hover:text-yellow-600 dark:border-slate-700 dark:text-slate-300 dark:hover:border-yellow-400 dark:hover:text-yellow-400 bg-transparent hover:bg-slate-50 dark:hover:bg-slate-900/50",
+    ghost: "text-slate-600 hover:text-slate-900 dark:text-slate-400 dark:hover:text-white bg-transparent hover:bg-slate-100 dark:hover:bg-slate-800/50"
+  };
+
+  return (
+    <button className={`${baseStyle} ${variants[variant]} ${className}`} {...props}>
+      {children}
+    </button>
+  );
+};
+
+const Navbar = ({ isDark, toggleTheme }) => {
+  const [isScrolled, setIsScrolled] = useState(false);
+  useEffect(() => {
+    const handleScroll = () => setIsScrolled(window.scrollY > 20);
+    window.addEventListener('scroll', handleScroll);
+    return () => window.removeEventListener('scroll', handleScroll);
+  }, []);
+
+  return (
+    <nav className={`fixed top-0 w-full z-50 transition-all duration-500 ${isScrolled ? 'bg-white/80 dark:bg-slate-950/80 backdrop-blur-xl border-b border-slate-200/50 dark:border-slate-800/50 py-3 shadow-lg' : 'bg-transparent py-5'}`}>
+      <div className="max-w-7xl mx-auto px-6 flex justify-between items-center">
+        <div className="flex items-center gap-2 cursor-pointer">
+          <div className="relative w-10 h-10 flex items-center justify-center bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-lg shadow-lg">
+            <Settings className="w-6 h-6 text-slate-500 dark:text-slate-400 absolute" />
+            <Code className="w-4 h-4 text-yellow-500 dark:text-yellow-400 z-10" />
+          </div>
+          <span className="text-xl font-bold text-slate-800 dark:text-slate-100">
+            Windev<span className="text-yellow-500 dark:text-yellow-400">Expert</span>
+          </span>
+        </div>
+        <div className="flex items-center gap-4">
+          <button onClick={toggleTheme} className="p-2 rounded-lg text-slate-600 dark:text-slate-400 hover:bg-slate-100 dark:hover:bg-slate-800">
+            {isDark ? <Sun className="w-5 h-5" /> : <Moon className="w-5 h-5" />}
+          </button>
+          <div className="w-px h-6 bg-slate-200 dark:bg-slate-800 hidden md:block"></div>
+          <button className="hidden md:block text-sm font-bold text-slate-600 dark:text-slate-300 hover:text-black dark:hover:text-white">Connexion</button>
+          <Button variant="primary" className="py-2 px-4 text-sm hidden md:flex">S'abonner</Button>
+          <button className="md:hidden text-slate-600 dark:text-slate-300"><Menu /></button>
+        </div>
+      </div>
+    </nav>
+  );
+};
+
+const AccordionItem = ({ module, index, isOpen, toggle }) => {
+  return (
+    <div className="border border-slate-200 dark:border-slate-800 rounded-xl overflow-hidden mb-4 bg-white dark:bg-slate-900 transition-all duration-300 hover:border-slate-300 dark:hover:border-slate-700">
+      <button 
+        onClick={toggle}
+        className="w-full flex items-center justify-between p-5 text-left bg-slate-50/50 dark:bg-slate-900/50 hover:bg-slate-100 dark:hover:bg-slate-800 transition-colors"
+      >
+        <div className="flex items-center gap-4">
+          <div className={`w-8 h-8 rounded-full flex items-center justify-center text-sm font-bold border ${isOpen ? 'bg-yellow-400 text-slate-900 border-yellow-500' : 'bg-slate-200 dark:bg-slate-800 text-slate-500 dark:text-slate-400 border-slate-300 dark:border-slate-700'}`}>
+            {index + 1}
+          </div>
+          <div>
+            <h4 className="font-bold text-slate-900 dark:text-white text-base md:text-lg">{module.title}</h4>
+            <div className="flex items-center gap-2 text-xs text-slate-500 dark:text-slate-400 mt-1">
+               <span>{module.lessons.length} leçons</span>
+               <span>•</span>
+               <span>{module.duration}</span>
+            </div>
+          </div>
+        </div>
+        {isOpen ? <ChevronUp className="w-5 h-5 text-slate-400" /> : <ChevronDown className="w-5 h-5 text-slate-400" />}
+      </button>
+
+      {isOpen && (
+        <div className="divide-y divide-slate-100 dark:divide-slate-800/50 border-t border-slate-100 dark:border-slate-800">
+          {module.lessons.map((lesson, idx) => (
+            <div key={idx} className="p-4 pl-16 flex items-center justify-between hover:bg-slate-50 dark:hover:bg-slate-800/30 transition-colors group cursor-pointer">
+               <div className="flex items-center gap-3">
+                  {lesson.isFree ? (
+                    <div className="w-6 h-6 rounded-full bg-green-500/10 flex items-center justify-center">
+                        <Play className="w-3 h-3 text-green-600 dark:text-green-400 ml-0.5" />
+                    </div>
+                  ) : (
+                    <div className="w-6 h-6 rounded-full bg-slate-100 dark:bg-slate-800 flex items-center justify-center">
+                        <Lock className="w-3 h-3 text-slate-400" />
+                    </div>
+                  )}
+                  <span className={`text-sm font-medium ${lesson.isFree ? 'text-slate-900 dark:text-white group-hover:text-yellow-600 dark:group-hover:text-yellow-400' : 'text-slate-600 dark:text-slate-400'}`}>
+                    {lesson.title}
+                  </span>
+               </div>
+               <div className="flex items-center gap-4">
+                  {lesson.isFree && <span className="text-[10px] font-bold uppercase tracking-wider text-green-600 dark:text-green-400 bg-green-500/10 px-2 py-0.5 rounded">Gratuit</span>}
+                  <span className="text-xs text-slate-400 font-mono">{lesson.duration}</span>
+               </div>
+            </div>
+          ))}
+        </div>
+      )}
+    </div>
+  );
+};
+
+export default function CourseDetailPage() {
+  const [isDark, setIsDark] = useState(true);
+  const [activeTab, setActiveTab] = useState('description');
+  const [openModuleIndex, setOpenModuleIndex] = useState(0);
+
+  return (
+    <div className={`${isDark ? 'dark' : ''} font-sans selection:bg-yellow-400 selection:text-black`}>
+      <GlobalStyles />
+      <div className="bg-slate-50 dark:bg-slate-950 min-h-screen transition-colors duration-500 flex flex-col">
+        
+        <Navbar isDark={isDark} toggleTheme={() => setIsDark(!isDark)} />
+
+        {/* --- HERO SECTION --- */}
+        <header className="relative pt-32 pb-12 bg-white dark:bg-slate-900 border-b border-slate-200 dark:border-slate-800 overflow-hidden">
+           {/* Background Decorations */}
+           <div className="absolute top-0 right-0 w-[500px] h-[500px] bg-yellow-400/5 rounded-full blur-[100px] animate-blob" />
+           <div className="absolute bottom-0 left-0 w-[400px] h-[400px] bg-indigo-500/5 rounded-full blur-[100px] animate-blob animation-delay-2000" />
+           
+           <div className="max-w-7xl mx-auto px-6 grid lg:grid-cols-3 gap-12 relative z-10">
+              <div className="lg:col-span-2 space-y-6">
+                 {/* Breadcrumb */}
+                 <div className="flex items-center gap-2 text-sm text-slate-500 dark:text-slate-400">
+                    <span className="text-yellow-600 dark:text-yellow-400 font-bold">Catalogue</span>
+                    <span>/</span>
+                    <span className="text-slate-700 dark:text-slate-300">WinDev</span>
+                    <span>/</span>
+                    <span>Architecture</span>
+                 </div>
+
+                 <h1 className="text-3xl md:text-5xl font-bold text-slate-900 dark:text-white leading-tight">
+                   {COURSE.title}
+                 </h1>
+                 
+                 <p className="text-lg text-slate-600 dark:text-slate-400 leading-relaxed">
+                   {COURSE.subtitle}
+                 </p>
+
+                 <div className="flex flex-wrap items-center gap-6 text-sm text-slate-500 dark:text-slate-400">
+                    <div className="flex items-center gap-1.5 bg-yellow-400/10 px-3 py-1 rounded-full border border-yellow-400/20 text-yellow-700 dark:text-yellow-400 font-bold">
+                       <Star className="w-4 h-4 fill-current" />
+                       {COURSE.rating} <span className="font-normal opacity-80">({COURSE.reviews_count} avis)</span>
+                    </div>
+                    <div className="flex items-center gap-1.5">
+                       <Users className="w-4 h-4" /> {COURSE.students_count} étudiants
+                    </div>
+                    <div className="flex items-center gap-1.5">
+                       <Clock className="w-4 h-4" /> Dernière mise à jour : {COURSE.updatedAt}
+                    </div>
+                    <div className="flex items-center gap-1.5">
+                       <Globe className="w-4 h-4" /> {COURSE.language}
+                    </div>
+                 </div>
+              </div>
+           </div>
+        </header>
+
+        {/* --- MAIN CONTENT & SIDEBAR --- */}
+        <div className="max-w-7xl mx-auto px-6 py-12 grid lg:grid-cols-3 gap-12 relative">
+           
+           {/* LEFT COLUMN (Content) */}
+           <div className="lg:col-span-2 space-y-12">
+              
+              {/* What you'll learn */}
+              <div className="bg-white dark:bg-slate-900 rounded-2xl p-8 border border-slate-200 dark:border-slate-800 shadow-sm">
+                 <h3 className="text-xl font-bold text-slate-900 dark:text-white mb-6">Ce que vous apprendrez</h3>
+                 <div className="grid md:grid-cols-2 gap-4">
+                    {COURSE.objectives.map((obj, i) => (
+                      <div key={i} className="flex items-start gap-3">
+                         <CheckCircle className="w-5 h-5 text-green-500 dark:text-green-400 mt-0.5 shrink-0" />
+                         <span className="text-slate-600 dark:text-slate-300 text-sm leading-relaxed">{obj}</span>
+                      </div>
+                    ))}
+                 </div>
+              </div>
+
+              {/* TABS Navigation */}
+              <div className="border-b border-slate-200 dark:border-slate-800">
+                 <div className="flex gap-8">
+                    {['description', 'programme', 'avis', 'formateur'].map(tab => (
+                      <button
+                        key={tab}
+                        onClick={() => setActiveTab(tab)}
+                        className={`pb-4 text-sm font-bold uppercase tracking-wide transition-all relative ${
+                          activeTab === tab 
+                            ? 'text-yellow-600 dark:text-yellow-400' 
+                            : 'text-slate-500 dark:text-slate-400 hover:text-slate-800 dark:hover:text-slate-200'
+                        }`}
+                      >
+                        {tab}
+                        {activeTab === tab && (
+                          <span className="absolute bottom-0 left-0 w-full h-0.5 bg-yellow-400 rounded-full"></span>
+                        )}
+                      </button>
+                    ))}
+                 </div>
+              </div>
+
+              {/* TAB CONTENT */}
+              <div className="min-h-[400px]">
+                 
+                 {/* 1. Description */}
+                 {activeTab === 'description' && (
+                    <div className="space-y-8 animate-in fade-in duration-300">
+                       <div 
+                         className="prose dark:prose-invert prose-slate max-w-none"
+                         dangerouslySetInnerHTML={{ __html: COURSE.description_html }} 
+                       />
+                       
+                       <div className="bg-indigo-50 dark:bg-indigo-500/10 border-l-4 border-indigo-500 p-6 rounded-r-lg">
+                          <h4 className="font-bold text-indigo-900 dark:text-indigo-300 mb-2">Prérequis</h4>
+                          <ul className="list-disc pl-5 space-y-1 text-indigo-800 dark:text-indigo-200/80 text-sm">
+                             {COURSE.prerequisites.map((req, i) => <li key={i}>{req}</li>)}
+                          </ul>
+                       </div>
+                    </div>
+                 )}
+
+                 {/* 2. Programme (Curriculum) */}
+                 {activeTab === 'programme' && (
+                    <div className="animate-in fade-in duration-300">
+                       <div className="flex justify-between items-end mb-6">
+                          <h3 className="text-xl font-bold text-slate-900 dark:text-white">Contenu du cours</h3>
+                          <span className="text-sm text-slate-500 dark:text-slate-400">
+                             {COURSE.lessons_count} leçons • {COURSE.duration} au total
+                          </span>
+                       </div>
+                       
+                       <div>
+                          {COURSE.curriculum.map((module, i) => (
+                             <AccordionItem 
+                               key={i} 
+                               index={i}
+                               module={module} 
+                               isOpen={openModuleIndex === i}
+                               toggle={() => setOpenModuleIndex(openModuleIndex === i ? -1 : i)}
+                             />
+                          ))}
+                       </div>
+                    </div>
+                 )}
+
+                 {/* 3. Avis */}
+                 {activeTab === 'avis' && (
+                    <div className="animate-in fade-in duration-300">
+                       <div className="flex items-center gap-4 mb-8 bg-slate-50 dark:bg-slate-900 p-6 rounded-xl border border-slate-200 dark:border-slate-800">
+                          <div className="text-center">
+                             <div className="text-5xl font-bold text-slate-900 dark:text-white mb-1">{COURSE.rating}</div>
+                             <div className="flex justify-center text-yellow-400 mb-1">
+                                {[1,2,3,4,5].map(i => <Star key={i} className="w-4 h-4 fill-current" />)}
+                             </div>
+                             <div className="text-xs text-slate-500 uppercase font-bold">Note moyenne</div>
+                          </div>
+                          <div className="h-16 w-px bg-slate-200 dark:bg-slate-800 mx-4"></div>
+                          <div className="flex-grow space-y-2">
+                             {[5,4,3,2,1].map(stars => (
+                                <div key={stars} className="flex items-center gap-2 text-xs">
+                                   <div className="w-12 h-1.5 bg-slate-200 dark:bg-slate-800 rounded-full overflow-hidden">
+                                      <div 
+                                        className="h-full bg-yellow-400 rounded-full" 
+                                        style={{ width: stars === 5 ? '80%' : stars === 4 ? '15%' : '5%' }}
+                                      ></div>
+                                   </div>
+                                   <div className="flex text-yellow-400">
+                                      {[...Array(5)].map((_, i) => <Star key={i} className={`w-3 h-3 ${i < stars ? 'fill-current' : 'text-slate-300 dark:text-slate-700'}`} />)}
+                                   </div>
+                                   <span className="text-slate-400">({stars === 5 ? 70 : 10})</span>
+                                </div>
+                             ))}
+                          </div>
+                       </div>
+                       {/* Mock Review */}
+                       <div className="space-y-6">
+                          {[1, 2, 3].map(i => (
+                             <div key={i} className="flex gap-4 border-b border-slate-100 dark:border-slate-800 pb-6 last:border-0">
+                                <div className="w-10 h-10 rounded-full bg-indigo-500 text-white flex items-center justify-center font-bold">JD</div>
+                                <div>
+                                   <div className="flex items-center gap-2 mb-1">
+                                      <h5 className="font-bold text-slate-900 dark:text-white">Jean Dupont</h5>
+                                      <span className="text-xs text-slate-400">• il y a 2 jours</span>
+                                   </div>
+                                   <div className="flex text-yellow-400 mb-2">
+                                      {[...Array(5)].map((_, i) => <Star key={i} className="w-3 h-3 fill-current" />)}
+                                   </div>
+                                   <p className="text-sm text-slate-600 dark:text-slate-400">
+                                      Excellente formation. J'ai enfin compris comment structurer mes classes proprement. Le chapitre sur les Design Patterns est une pépite.
+                                   </p>
+                                </div>
+                             </div>
+                          ))}
+                       </div>
+                    </div>
+                 )}
+
+                 {/* 4. Formateur */}
+                 {activeTab === 'formateur' && (
+                    <div className="animate-in fade-in duration-300 flex flex-col md:flex-row gap-8 items-start">
+                       <img src={COURSE.instructor.avatar} alt={COURSE.instructor.name} className="w-32 h-32 rounded-2xl object-cover shadow-lg" />
+                       <div className="space-y-4">
+                          <div>
+                             <h3 className="text-xl font-bold text-slate-900 dark:text-white">{COURSE.instructor.name}</h3>
+                             <p className="text-yellow-600 dark:text-yellow-400 font-medium text-sm">{COURSE.instructor.title}</p>
+                          </div>
+                          <div className="flex gap-4 text-xs font-mono text-slate-500">
+                             <span className="flex items-center gap-1"><Star className="w-3 h-3 text-yellow-500" /> {COURSE.instructor.rating} Note Instr.</span>
+                             <span className="flex items-center gap-1"><Users className="w-3 h-3" /> {COURSE.instructor.students} Étudiants</span>
+                             <span className="flex items-center gap-1"><Play className="w-3 h-3" /> {COURSE.instructor.courses_count} Cours</span>
+                          </div>
+                          <p className="text-slate-600 dark:text-slate-400 leading-relaxed text-sm">
+                             {COURSE.instructor.bio}
+                          </p>
+                       </div>
+                    </div>
+                 )}
+
+              </div>
+           </div>
+
+           {/* RIGHT COLUMN (Sticky Sidebar) */}
+           <div className="lg:col-span-1">
+              <div className="sticky top-24 space-y-6">
+                 
+                 {/* Video Preview Card */}
+                 <div className="bg-white dark:bg-slate-900 rounded-2xl overflow-hidden border border-slate-200 dark:border-slate-800 shadow-2xl relative group">
+                    <div className="relative h-48 cursor-pointer group">
+                       <img src={COURSE.image} alt="Preview" className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-500" />
+                       <div className="absolute inset-0 bg-slate-900/40 group-hover:bg-slate-900/20 transition-colors flex items-center justify-center">
+                          <div className="w-16 h-16 bg-white/20 backdrop-blur-sm rounded-full flex items-center justify-center border border-white/50 group-hover:scale-110 transition-transform">
+                             <Play className="w-6 h-6 text-white fill-white ml-1" />
+                          </div>
+                       </div>
+                       <div className="absolute bottom-4 left-0 w-full text-center">
+                          <span className="text-white font-bold text-sm shadow-black drop-shadow-md">Aperçu du cours</span>
+                       </div>
+                    </div>
+                    
+                    <div className="p-6">
+                       <div className="flex items-end gap-3 mb-6">
+                          <span className="text-4xl font-bold text-slate-900 dark:text-white">{COURSE.price}€</span>
+                          <span className="text-lg text-slate-400 line-through mb-1.5 opacity-60">290€</span>
+                          <span className="text-xs font-bold text-green-600 bg-green-500/10 px-2 py-1 rounded mb-2">-35%</span>
+                       </div>
+
+                       <div className="space-y-3 mb-6">
+                          <Button variant="primary" className="w-full shadow-yellow-400/20">Ajouter au panier</Button>
+                          <Button variant="outline" className="w-full">S'abonner (49€/mois)</Button>
+                       </div>
+
+                       <div className="space-y-4 mb-6">
+                          <h5 className="font-bold text-slate-900 dark:text-white text-sm">Ce cours inclut :</h5>
+                          <ul className="space-y-3 text-sm text-slate-600 dark:text-slate-400">
+                             <li className="flex items-center gap-3">
+                                <Monitor className="w-4 h-4 text-slate-400" />
+                                <span>{COURSE.duration} de vidéo HD</span>
+                             </li>
+                             <li className="flex items-center gap-3">
+                                <Download className="w-4 h-4 text-slate-400" />
+                                <span>{COURSE.lessons_count} ressources téléchargeables</span>
+                             </li>
+                             <li className="flex items-center gap-3">
+                                <Code className="w-4 h-4 text-slate-400" />
+                                <span>Code source complet (.wdp)</span>
+                             </li>
+                             <li className="flex items-center gap-3">
+                                <Monitor className="w-4 h-4 text-slate-400" />
+                                <span>Accès mobile et desktop</span>
+                             </li>
+                             <li className="flex items-center gap-3">
+                                <Award className="w-4 h-4 text-yellow-500" />
+                                <span>Certificat de fin de formation</span>
+                             </li>
+                          </ul>
+                       </div>
+
+                       <div className="pt-6 border-t border-slate-100 dark:border-slate-800 flex justify-between items-center text-sm font-medium text-slate-500 hover:text-slate-800 dark:hover:text-white cursor-pointer transition-colors">
+                          <div className="flex items-center gap-2">
+                             <Share2 className="w-4 h-4" /> Partager
+                          </div>
+                          <span className="text-xs font-mono bg-slate-100 dark:bg-slate-800 px-2 py-1 rounded">REF: WDX-2501</span>
+                       </div>
+                    </div>
+                 </div>
+
+                 {/* Tech Stack Box */}
+                 <div className="bg-slate-100 dark:bg-slate-900/50 rounded-xl p-5 border border-slate-200 dark:border-slate-800">
+                    <h5 className="font-bold text-slate-700 dark:text-slate-300 text-xs uppercase mb-3 tracking-wider">Versions Compatibles</h5>
+                    <div className="flex flex-wrap gap-2">
+                       {COURSE.versions.map(v => (
+                         <span key={v} className="px-2 py-1 bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded text-xs font-mono text-slate-600 dark:text-slate-400">
+                           {v}
+                         </span>
+                       ))}
+                    </div>
+                 </div>
+
+              </div>
+           </div>
+           
+        </div>
+        
+        {/* Footer (Simplified) */}
+        <footer className="bg-white dark:bg-slate-950 border-t border-slate-200 dark:border-slate-800 py-8 text-center mt-auto">
+           <p className="text-sm text-slate-500">© 2025 WindevExpert. Tous droits réservés.</p>
+        </footer>
+
+      </div>
+    </div>
+  );
+}

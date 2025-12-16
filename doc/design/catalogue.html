@@ -1,0 +1,483 @@
+import React, { useState, useEffect } from 'react';
+import { 
+  Search,
+  Filter,
+  Code, 
+  Settings, 
+  Menu, 
+  X,
+  Sun,
+  Moon,
+  Star,
+  Users,
+  Clock,
+  CheckCircle,
+  Cpu,
+  ArrowRight,
+  BookOpen,
+  Layout,
+  Smartphone,
+  Database,
+  Terminal,
+  ChevronDown,
+  ChevronUp
+} from 'lucide-react';
+
+// --- Styles Globaux ---
+const GlobalStyles = () => (
+  <style>{`
+    html { scroll-behavior: smooth; }
+    @keyframes blob {
+      0% { transform: translate(0px, 0px) scale(1); }
+      33% { transform: translate(30px, -50px) scale(1.1); }
+      66% { transform: translate(-20px, 20px) scale(0.9); }
+      100% { transform: translate(0px, 0px) scale(1); }
+    }
+    .animate-blob { animation: blob 7s infinite; }
+    .animation-delay-2000 { animation-delay: 2s; }
+    .animation-delay-4000 { animation-delay: 4s; }
+  `}</style>
+);
+
+// --- Données Mockées (Cours) ---
+const COURSES_DATA = [
+  {
+    id: 1,
+    title: "WinDev : Architecture Orientée Objet Avancée",
+    description: "Maîtrisez les design patterns (Singleton, Factory, Observer) appliqués au WLangage pour des applications robustes.",
+    level: "Expert",
+    duration: "12h 30m",
+    students: 420,
+    rating: 4.9,
+    reviews: 85,
+    price: 190,
+    technologies: ["WinDev 28", "POO", "UML"],
+    image: "https://images.unsplash.com/photo-1555066931-4365d14bab8c?auto=format&fit=crop&q=80&w=800",
+    category: "WinDev"
+  },
+  {
+    id: 2,
+    title: "API REST avec WebDev & Node.js",
+    description: "Créez une API performante en Node.js et consommez-la dans vos pages WebDev AWP. Le meilleur des deux mondes.",
+    level: "Intermédiaire",
+    duration: "8h 45m",
+    students: 285,
+    rating: 4.8,
+    reviews: 42,
+    price: 150,
+    technologies: ["WebDev 28", "Node.js", "REST"],
+    image: "https://images.unsplash.com/photo-1517694712202-14dd9538aa97?auto=format&fit=crop&q=80&w=800",
+    category: "WebDev"
+  },
+  {
+    id: 3,
+    title: "WinDev Mobile : De l'idée au Store",
+    description: "Développement cross-platform iOS & Android. Gestion des capteurs, GPS et publication sur les stores.",
+    level: "Débutant",
+    duration: "15h 00m",
+    students: 1100,
+    rating: 4.7,
+    reviews: 150,
+    price: 99,
+    technologies: ["WinDev Mobile", "Android", "iOS"],
+    image: "https://images.unsplash.com/photo-1526498460520-4c246339dccb?auto=format&fit=crop&q=80&w=800",
+    category: "Mobile"
+  },
+  {
+    id: 4,
+    title: "HFSQL Client/Serveur : Performance & Sécurité",
+    description: "Optimisation des requêtes, gestion des transactions, réplication et sécurisation de vos bases de données.",
+    level: "Avancé",
+    duration: "10h 15m",
+    students: 150,
+    rating: 5.0,
+    reviews: 30,
+    price: 130,
+    technologies: ["HFSQL", "SQL", "Optimisation"],
+    image: "https://images.unsplash.com/photo-1544383835-bda2bc66a55d?auto=format&fit=crop&q=80&w=800",
+    category: "Data"
+  },
+  {
+    id: 5,
+    title: "Intégration Rust dans WinDev (DLL)",
+    description: "Boostez vos traitements critiques en appelant des bibliothèques Rust natives depuis votre code WLangage.",
+    level: "Expert",
+    duration: "6h 00m",
+    students: 50,
+    rating: 5.0,
+    reviews: 12,
+    price: 220,
+    technologies: ["Rust", "WinDev", "DLL"],
+    image: "https://images.unsplash.com/photo-1537432376769-00f5c2f4c8d2?auto=format&fit=crop&q=80&w=800",
+    category: "Architecture"
+  },
+  {
+    id: 6,
+    title: "UI/UX Design pour WinDev",
+    description: "Arrêtez les interfaces grises. Apprenez à utiliser les plans, les animations et le CSS dans WinDev.",
+    level: "Intermédiaire",
+    duration: "5h 30m",
+    students: 310,
+    rating: 4.6,
+    reviews: 55,
+    price: 89,
+    technologies: ["Design", "CSS", "Ergonomie"],
+    image: "https://images.unsplash.com/photo-1561070791-2526d30994b5?auto=format&fit=crop&q=80&w=800",
+    category: "WinDev"
+  }
+];
+
+// --- Composants UI ---
+
+const Button = ({ children, variant = 'primary', className = '', ...props }) => {
+  const baseStyle = "px-4 py-2 rounded-lg font-bold transition-all duration-300 flex items-center justify-center gap-2 active:scale-95";
+  const variants = {
+    primary: "bg-yellow-400 text-slate-950 hover:bg-yellow-300 shadow-lg shadow-yellow-400/20 transform hover:-translate-y-0.5 border border-transparent",
+    outline: "border border-slate-300 text-slate-700 hover:border-yellow-500 hover:text-yellow-600 dark:border-slate-700 dark:text-slate-300 dark:hover:border-yellow-400 dark:hover:text-yellow-400 bg-transparent hover:bg-slate-50 dark:hover:bg-slate-900/50",
+    ghost: "text-slate-600 hover:text-slate-900 dark:text-slate-400 dark:hover:text-white bg-transparent hover:bg-slate-100 dark:hover:bg-slate-800/50"
+  };
+
+  return (
+    <button className={`${baseStyle} ${variants[variant]} ${className}`} {...props}>
+      {children}
+    </button>
+  );
+};
+
+const Badge = ({ children, color = "slate" }) => {
+  const colors = {
+    slate: "bg-slate-100 text-slate-700 dark:bg-slate-800 dark:text-slate-300 border-slate-200 dark:border-slate-700",
+    yellow: "bg-yellow-400/10 text-yellow-700 dark:text-yellow-400 border-yellow-400/20",
+    indigo: "bg-indigo-500/10 text-indigo-700 dark:text-indigo-400 border-indigo-500/20",
+    green: "bg-green-500/10 text-green-700 dark:text-green-400 border-green-500/20",
+  };
+  return (
+    <span className={`px-2 py-1 rounded text-[10px] font-bold uppercase tracking-wider border ${colors[color] || colors.slate}`}>
+      {children}
+    </span>
+  );
+};
+
+const Navbar = ({ isDark, toggleTheme }) => {
+  const [isScrolled, setIsScrolled] = useState(false);
+  const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
+
+  useEffect(() => {
+    const handleScroll = () => setIsScrolled(window.scrollY > 20);
+    window.addEventListener('scroll', handleScroll);
+    return () => window.removeEventListener('scroll', handleScroll);
+  }, []);
+
+  return (
+    <nav className={`fixed top-0 w-full z-50 transition-all duration-500 ${isScrolled ? 'bg-white/80 dark:bg-slate-950/80 backdrop-blur-xl border-b border-slate-200/50 dark:border-slate-800/50 py-3 shadow-lg' : 'bg-transparent py-5'}`}>
+      <div className="max-w-7xl mx-auto px-6 flex justify-between items-center">
+        <div className="flex items-center gap-2 group cursor-pointer" onClick={() => window.scrollTo(0,0)}>
+          <div className="relative w-10 h-10 flex items-center justify-center bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-lg group-hover:border-yellow-400/50 transition-all duration-300 shadow-lg shadow-black/5 dark:shadow-black/50 group-hover:shadow-yellow-400/20">
+            <Settings className="w-6 h-6 text-slate-500 dark:text-slate-400 group-hover:rotate-180 transition-transform duration-700 ease-in-out absolute" />
+            <Code className="w-4 h-4 text-yellow-500 dark:text-yellow-400 z-10" />
+          </div>
+          <span className="text-xl font-bold text-slate-800 dark:text-slate-100 tracking-tight group-hover:text-black dark:group-hover:text-white transition-colors">
+            Windev<span className="text-yellow-500 dark:text-yellow-400">Expert</span>
+          </span>
+        </div>
+
+        <div className="hidden md:flex items-center gap-8">
+          {['Formations', 'Outils', 'Expertise', 'Tarifs'].map((item) => (
+             <a key={item} href={`#`} className="relative text-sm font-medium text-slate-600 dark:text-slate-400 hover:text-yellow-600 dark:hover:text-yellow-400 transition-colors group">
+               {item}
+               <span className="absolute -bottom-1 left-0 w-0 h-0.5 bg-yellow-400 transition-all duration-300 group-hover:w-full"></span>
+             </a>
+          ))}
+        </div>
+
+        <div className="hidden md:flex items-center gap-4">
+          <button onClick={toggleTheme} className="p-2 rounded-lg text-slate-600 dark:text-slate-400 hover:bg-slate-100 dark:hover:bg-slate-800 transition-all duration-300 hover:rotate-12">
+            {isDark ? <Sun className="w-5 h-5" /> : <Moon className="w-5 h-5" />}
+          </button>
+          <div className="w-px h-6 bg-slate-200 dark:bg-slate-800"></div>
+          <button className="text-sm font-bold text-slate-600 dark:text-slate-300 hover:text-black dark:hover:text-white transition-colors">Connexion</button>
+          <Button variant="primary" className="py-2 px-4 text-sm">S'abonner</Button>
+        </div>
+
+        <div className="flex md:hidden items-center gap-4">
+          <button onClick={toggleTheme} className="p-2 text-slate-600 dark:text-slate-400">
+            {isDark ? <Sun className="w-5 h-5" /> : <Moon className="w-5 h-5" />}
+          </button>
+          <button className="text-slate-600 dark:text-slate-300 hover:text-black dark:hover:text-white" onClick={() => setMobileMenuOpen(!mobileMenuOpen)}>
+            {mobileMenuOpen ? <X /> : <Menu />}
+          </button>
+        </div>
+      </div>
+
+      {mobileMenuOpen && (
+        <div className="md:hidden absolute top-full left-0 w-full bg-white dark:bg-slate-950 border-b border-slate-200 dark:border-slate-800 p-6 flex flex-col gap-4 shadow-2xl animate-in slide-in-from-top-5 duration-200">
+           {['Formations', 'Outils', 'Tarifs'].map(item => (
+             <a key={item} href="#" className="text-slate-700 dark:text-slate-300 block py-2 hover:text-yellow-500 dark:hover:text-yellow-400">{item}</a>
+           ))}
+           <hr className="border-slate-200 dark:border-slate-800" />
+           <Button variant="outline" className="w-full">Connexion</Button>
+           <Button variant="primary" className="w-full">S'abonner</Button>
+        </div>
+      )}
+    </nav>
+  );
+};
+
+const CourseCard = ({ course }) => (
+  <div className="bg-white dark:bg-slate-900 rounded-2xl overflow-hidden border border-slate-200 dark:border-slate-800 hover:border-yellow-400/50 dark:hover:border-yellow-400/50 hover:shadow-2xl hover:shadow-black/10 dark:hover:shadow-black/50 transition-all duration-300 group flex flex-col h-full transform hover:-translate-y-1">
+    {/* Image & Overlay */}
+    <div className="relative h-48 overflow-hidden">
+      <div className="absolute inset-0 bg-slate-900/10 group-hover:bg-slate-900/0 transition-colors z-10"></div>
+      <img src={course.image} alt={course.title} className="w-full h-full object-cover transform group-hover:scale-110 transition-transform duration-700" />
+      <div className="absolute top-4 left-4 z-20">
+        <Badge color="yellow">{course.category}</Badge>
+      </div>
+    </div>
+
+    {/* Content */}
+    <div className="p-6 flex flex-col flex-grow">
+      <div className="flex justify-between items-start mb-3">
+         <div className="flex items-center gap-1 text-yellow-600 dark:text-yellow-400 text-xs font-bold">
+            <Star className="w-3.5 h-3.5 fill-current" /> 
+            <span>{course.rating}</span>
+            <span className="text-slate-400 font-normal ml-1">({course.reviews})</span>
+         </div>
+         <span className="text-xs font-medium text-slate-500 dark:text-slate-400">{course.level}</span>
+      </div>
+
+      <h3 className="text-lg font-bold text-slate-900 dark:text-white mb-2 leading-tight group-hover:text-yellow-600 dark:group-hover:text-yellow-400 transition-colors">
+        {course.title}
+      </h3>
+      
+      <p className="text-sm text-slate-600 dark:text-slate-400 line-clamp-2 mb-4 flex-grow">
+        {course.description}
+      </p>
+
+      {/* Meta */}
+      <div className="flex items-center gap-4 text-xs text-slate-500 dark:text-slate-500 mb-4 font-mono">
+        <div className="flex items-center gap-1">
+           <Clock className="w-3.5 h-3.5" /> {course.duration}
+        </div>
+        <div className="flex items-center gap-1">
+           <Users className="w-3.5 h-3.5" /> {course.students}
+        </div>
+      </div>
+
+      {/* Tech Stack Badges */}
+      <div className="flex flex-wrap gap-2 mb-6">
+        {course.technologies.slice(0, 3).map((tech, i) => (
+          <span key={i} className="text-[10px] px-2 py-1 rounded bg-slate-100 dark:bg-slate-800 text-slate-600 dark:text-slate-400 border border-slate-200 dark:border-slate-700">
+            {tech}
+          </span>
+        ))}
+      </div>
+
+      {/* Footer */}
+      <div className="flex items-center justify-between pt-4 border-t border-slate-100 dark:border-slate-800 mt-auto">
+         <span className="text-2xl font-bold text-slate-900 dark:text-white">{course.price}€</span>
+         <button className="text-sm font-bold text-slate-700 dark:text-slate-300 hover:text-yellow-600 dark:hover:text-yellow-400 flex items-center gap-1 transition-colors">
+           Voir le cours <ArrowRight className="w-4 h-4" />
+         </button>
+      </div>
+    </div>
+  </div>
+);
+
+const FilterSection = ({ title, options, selected, onChange, icon: Icon }) => {
+  const [isOpen, setIsOpen] = useState(true);
+
+  return (
+    <div className="border-b border-slate-200 dark:border-slate-800 py-6 last:border-0">
+      <button 
+        className="flex items-center justify-between w-full mb-4 group"
+        onClick={() => setIsOpen(!isOpen)}
+      >
+        <div className="flex items-center gap-2 font-bold text-slate-900 dark:text-white">
+           {Icon && <Icon className="w-4 h-4 text-slate-500 group-hover:text-yellow-500 transition-colors" />}
+           {title}
+        </div>
+        {isOpen ? <ChevronUp className="w-4 h-4 text-slate-400" /> : <ChevronDown className="w-4 h-4 text-slate-400" />}
+      </button>
+      
+      {isOpen && (
+        <div className="space-y-3 animate-in slide-in-from-top-2 duration-200">
+          {options.map((opt) => (
+            <label key={opt} className="flex items-center gap-3 cursor-pointer group">
+              <div className="relative flex items-center">
+                <input 
+                  type="checkbox" 
+                  className="peer h-4 w-4 rounded border-slate-300 dark:border-slate-600 bg-white dark:bg-slate-800 text-yellow-400 focus:ring-yellow-400/50 focus:ring-offset-0 transition-all"
+                  checked={selected.includes(opt)}
+                  onChange={() => onChange(opt)}
+                />
+              </div>
+              <span className="text-sm text-slate-600 dark:text-slate-400 group-hover:text-slate-900 dark:group-hover:text-white transition-colors select-none">
+                {opt}
+              </span>
+            </label>
+          ))}
+        </div>
+      )}
+    </div>
+  );
+};
+
+export default function CatalogPage() {
+  const [isDark, setIsDark] = useState(true);
+  const [searchQuery, setSearchQuery] = useState("");
+  const [selectedCategories, setSelectedCategories] = useState([]);
+  const [selectedLevels, setSelectedLevels] = useState([]);
+
+  // Mock filtering logic
+  const toggleFilter = (setFn, current, value) => {
+    if (current.includes(value)) {
+      setFn(current.filter(item => item !== value));
+    } else {
+      setFn([...current, value]);
+    }
+  };
+
+  const filteredCourses = COURSES_DATA.filter(course => {
+    const matchesSearch = course.title.toLowerCase().includes(searchQuery.toLowerCase()) || 
+                          course.technologies.some(t => t.toLowerCase().includes(searchQuery.toLowerCase()));
+    const matchesCategory = selectedCategories.length === 0 || selectedCategories.includes(course.category);
+    const matchesLevel = selectedLevels.length === 0 || selectedLevels.includes(course.level);
+    return matchesSearch && matchesCategory && matchesLevel;
+  });
+
+  return (
+    <div className={`${isDark ? 'dark' : ''} font-sans selection:bg-yellow-400 selection:text-black`}>
+      <GlobalStyles />
+      <div className="bg-slate-50 dark:bg-slate-950 min-h-screen transition-colors duration-500 flex flex-col">
+        
+        <Navbar isDark={isDark} toggleTheme={() => setIsDark(!isDark)} />
+
+        {/* Hero Section Compact */}
+        <div className="pt-32 pb-12 px-6 relative overflow-hidden bg-white dark:bg-slate-900 border-b border-slate-200 dark:border-slate-800">
+            {/* Background Decorations */}
+            <div className="absolute top-0 right-0 w-[400px] h-[400px] bg-yellow-400/5 rounded-full blur-[100px] animate-blob" />
+            <div className="absolute bottom-0 left-0 w-[300px] h-[300px] bg-indigo-500/5 rounded-full blur-[100px] animate-blob animation-delay-2000" />
+            
+            <div className="max-w-7xl mx-auto relative z-10">
+               <h1 className="text-4xl md:text-5xl font-bold text-slate-900 dark:text-white mb-4">
+                 Catalogue des <span className="text-transparent bg-clip-text bg-gradient-to-r from-yellow-500 to-yellow-300">Formations</span>
+               </h1>
+               <p className="text-slate-600 dark:text-slate-400 max-w-2xl text-lg">
+                 Développez vos compétences sur l'écosystème PC Soft avec des cours conçus par des experts pour des experts.
+               </p>
+            </div>
+        </div>
+
+        {/* Main Content Area */}
+        <main className="flex-grow max-w-7xl mx-auto px-6 py-12 w-full grid lg:grid-cols-4 gap-10">
+           
+           {/* Sidebar Filters */}
+           <aside className="lg:col-span-1 hidden lg:block">
+              <div className="sticky top-28 space-y-2">
+                 {/* Search Mobile (Hidden on Desktop usually, but here unified) */}
+                 <div className="relative mb-6">
+                    <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-slate-400" />
+                    <input 
+                      type="text" 
+                      placeholder="Rechercher..." 
+                      className="w-full pl-10 pr-4 py-2.5 bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-lg text-sm text-slate-900 dark:text-white focus:outline-none focus:ring-2 focus:ring-yellow-400/50"
+                      value={searchQuery}
+                      onChange={(e) => setSearchQuery(e.target.value)}
+                    />
+                 </div>
+
+                 <div className="bg-white dark:bg-slate-900 rounded-2xl p-6 border border-slate-200 dark:border-slate-800 shadow-sm">
+                    <div className="flex items-center gap-2 mb-6 text-slate-400 uppercase tracking-wider text-xs font-bold">
+                       <Filter className="w-4 h-4" /> Filtres
+                    </div>
+                    
+                    <FilterSection 
+                      title="Catégorie" 
+                      icon={Layout}
+                      options={["WinDev", "WebDev", "Mobile", "Data", "Architecture"]} 
+                      selected={selectedCategories}
+                      onChange={(val) => toggleFilter(setSelectedCategories, selectedCategories, val)}
+                    />
+
+                    <FilterSection 
+                      title="Niveau" 
+                      icon={BookOpen}
+                      options={["Débutant", "Intermédiaire", "Avancé", "Expert"]} 
+                      selected={selectedLevels}
+                      onChange={(val) => toggleFilter(setSelectedLevels, selectedLevels, val)}
+                    />
+                 </div>
+
+                 {/* Promo Box Sidebar */}
+                 <div className="mt-8 bg-gradient-to-br from-indigo-600 to-indigo-800 rounded-2xl p-6 text-white relative overflow-hidden">
+                    <div className="absolute top-0 right-0 w-32 h-32 bg-white/10 rounded-full blur-2xl -translate-y-1/2 translate-x-1/2"></div>
+                    <Cpu className="w-8 h-8 mb-4 text-indigo-200" />
+                    <h4 className="font-bold text-lg mb-2">Besoin du Player ?</h4>
+                    <p className="text-sm text-indigo-100 mb-4 opacity-90">Téléchargez notre outil Desktop pour suivre vos cours hors connexion.</p>
+                    <button className="w-full py-2 bg-white text-indigo-900 text-sm font-bold rounded-lg hover:bg-indigo-50 transition-colors">Télécharger</button>
+                 </div>
+              </div>
+           </aside>
+
+           {/* Results Grid */}
+           <div className="lg:col-span-3">
+              {/* Mobile Filter Toggle & Count */}
+              <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center mb-6 gap-4">
+                 <p className="text-slate-500 dark:text-slate-400 font-medium">
+                    <span className="text-slate-900 dark:text-white font-bold">{filteredCourses.length}</span> résultats trouvés
+                 </p>
+                 
+                 {/* Mobile Search - Visible only on mobile */}
+                 <div className="lg:hidden w-full sm:w-auto relative">
+                    <input 
+                       type="text" 
+                       placeholder="Rechercher..." 
+                       className="w-full pl-10 pr-4 py-2 bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-lg text-sm"
+                       value={searchQuery}
+                       onChange={(e) => setSearchQuery(e.target.value)}
+                    />
+                    <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-slate-400" />
+                 </div>
+              </div>
+
+              {filteredCourses.length > 0 ? (
+                <div className="grid md:grid-cols-2 xl:grid-cols-3 gap-6">
+                   {filteredCourses.map(course => (
+                      <CourseCard key={course.id} course={course} />
+                   ))}
+                </div>
+              ) : (
+                <div className="flex flex-col items-center justify-center py-20 text-center border-2 border-dashed border-slate-200 dark:border-slate-800 rounded-3xl">
+                   <div className="w-16 h-16 bg-slate-100 dark:bg-slate-900 rounded-full flex items-center justify-center mb-4">
+                      <Search className="w-8 h-8 text-slate-400" />
+                   </div>
+                   <h3 className="text-xl font-bold text-slate-900 dark:text-white mb-2">Aucun résultat</h3>
+                   <p className="text-slate-500 dark:text-slate-400">Essayez de modifier vos filtres ou votre recherche.</p>
+                   <button 
+                     onClick={() => {setSelectedCategories([]); setSelectedLevels([]); setSearchQuery("");}}
+                     className="mt-6 text-yellow-600 dark:text-yellow-400 font-bold hover:underline"
+                   >
+                     Réinitialiser les filtres
+                   </button>
+                </div>
+              )}
+           </div>
+        </main>
+
+        {/* Footer (Simplified for brevity, matches LandingPage style) */}
+        <footer className="bg-white dark:bg-slate-950 border-t border-slate-200 dark:border-slate-800 py-12 px-6">
+           <div className="max-w-7xl mx-auto flex flex-col md:flex-row justify-between items-center gap-6">
+              <div className="flex items-center gap-2">
+                 <div className="w-8 h-8 flex items-center justify-center bg-slate-100 dark:bg-slate-900 rounded border border-slate-200 dark:border-slate-800">
+                    <Code className="w-4 h-4 text-yellow-500" />
+                 </div>
+                 <span className="font-bold text-slate-700 dark:text-slate-200">WindevExpert</span>
+              </div>
+              <p className="text-sm text-slate-500">© 2025 WindevExpert. Tous droits réservés.</p>
+           </div>
+        </footer>
+
+      </div>
+    </div>
+  );
+}

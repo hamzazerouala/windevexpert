@@ -1,0 +1,27 @@
+version: "3.9"
+services:
+  db:
+    image: postgres:16
+    restart: unless-stopped
+    environment:
+      POSTGRES_USER: windev
+      POSTGRES_PASSWORD: windev
+      POSTGRES_DB: windevexpert
+    ports:
+      - "5432:5432"
+    volumes:
+      - db_data:/var/lib/postgresql/data
+  app:
+    build: .
+    depends_on:
+      - db
+    environment:
+      DATABASE_URL: postgres://windev:windev@db:5432/windevexpert
+      JWT_SECRET: change_me
+      PORT: 8080
+      FRONTEND_URL: http://localhost:5173
+    ports:
+      - "8080:8080"
+volumes:
+  db_data:
+

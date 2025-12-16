@@ -1,0 +1,727 @@
+import React, { useState, useEffect, useRef } from 'react';
+import { 
+  Code, 
+  Settings, 
+  Terminal, 
+  Rocket, 
+  Lock, 
+  Check, 
+  Monitor, 
+  Smartphone, 
+  Database, 
+  Menu, 
+  X,
+  Play,
+  Star,
+  Download,
+  Cpu,
+  Zap,
+  Shield,
+  Users,
+  MessageSquare,
+  Sun,
+  Moon
+} from 'lucide-react';
+
+// --- Styles Globaux & Animations (Injectés dans le composant pour le fichier unique) ---
+const GlobalStyles = () => (
+  <style>{`
+    html {
+      scroll-behavior: smooth;
+    }
+    @keyframes blob {
+      0% { transform: translate(0px, 0px) scale(1); }
+      33% { transform: translate(30px, -50px) scale(1.1); }
+      66% { transform: translate(-20px, 20px) scale(0.9); }
+      100% { transform: translate(0px, 0px) scale(1); }
+    }
+    .animate-blob {
+      animation: blob 7s infinite;
+    }
+    .animation-delay-2000 {
+      animation-delay: 2s;
+    }
+    .animation-delay-4000 {
+      animation-delay: 4s;
+    }
+    .text-gradient {
+      background-size: 200% 200%;
+      animation: gradient 8s ease infinite;
+    }
+    @keyframes gradient {
+      0% { background-position: 0% 50%; }
+      50% { background-position: 100% 50%; }
+      100% { background-position: 0% 50%; }
+    }
+  `}</style>
+);
+
+// --- Composant Helper: RevealOnScroll ---
+const RevealOnScroll = ({ children, className = "", delay = 0 }) => {
+  const [isVisible, setIsVisible] = useState(false);
+  const ref = useRef(null);
+
+  useEffect(() => {
+    const observer = new IntersectionObserver(
+      ([entry]) => {
+        if (entry.isIntersecting) {
+          setIsVisible(true);
+          observer.disconnect();
+        }
+      },
+      { threshold: 0.1 }
+    );
+
+    if (ref.current) {
+      observer.observe(ref.current);
+    }
+
+    return () => {
+      if (ref.current) {
+        observer.unobserve(ref.current);
+      }
+    };
+  }, []);
+
+  return (
+    <div
+      ref={ref}
+      className={`transition-all duration-1000 ease-out transform ${
+        isVisible ? "opacity-100 translate-y-0" : "opacity-0 translate-y-12"
+      } ${className}`}
+      style={{ transitionDelay: `${delay}ms` }}
+    >
+      {children}
+    </div>
+  );
+};
+
+// --- Composants UI Reutilisables ---
+
+const Button = ({ children, variant = 'primary', className = '', ...props }) => {
+  const baseStyle = "px-6 py-3 rounded-lg font-bold transition-all duration-300 flex items-center justify-center gap-2 active:scale-95";
+  const variants = {
+    primary: "bg-yellow-400 text-slate-950 hover:bg-yellow-300 shadow-[0_0_15px_rgba(250,204,21,0.3)] hover:shadow-[0_0_30px_rgba(250,204,21,0.6)] transform hover:-translate-y-1 border border-transparent",
+    outline: "border border-slate-300 text-slate-700 hover:border-yellow-500 hover:text-yellow-600 dark:border-slate-700 dark:text-slate-300 dark:hover:border-yellow-400 dark:hover:text-yellow-400 bg-transparent hover:bg-slate-100 dark:hover:bg-slate-900/50",
+    ghost: "text-slate-600 hover:text-slate-900 dark:text-slate-400 dark:hover:text-white bg-transparent hover:bg-slate-100 dark:hover:bg-slate-800/50"
+  };
+
+  return (
+    <button className={`${baseStyle} ${variants[variant]} ${className}`} {...props}>
+      {children}
+    </button>
+  );
+};
+
+const SectionBadge = ({ children }) => (
+  <span className="inline-block px-3 py-1 mb-4 text-xs font-mono font-bold tracking-wider text-yellow-600 dark:text-yellow-400 uppercase bg-yellow-400/10 rounded-full border border-yellow-400/20 shadow-[0_0_10px_rgba(250,204,21,0.1)] backdrop-blur-sm">
+    {children}
+  </span>
+);
+
+const CodeBlock = ({ code }) => (
+  <div className="bg-slate-900 dark:bg-slate-950 rounded-lg p-4 font-mono text-sm border border-slate-800 shadow-2xl overflow-hidden relative group transition-transform duration-500 hover:scale-[1.02]">
+    <div className="flex gap-2 mb-3 border-b border-slate-800 dark:border-slate-900 pb-2">
+      <div className="w-3 h-3 rounded-full bg-red-500/20 border border-red-500/30"></div>
+      <div className="w-3 h-3 rounded-full bg-yellow-500/20 border border-yellow-500/30"></div>
+      <div className="w-3 h-3 rounded-full bg-green-500/20 border border-green-500/30"></div>
+    </div>
+    <div className="text-slate-300 relative z-10">
+      {code.split('\n').map((line, i) => (
+        <div key={i} className="flex hover:bg-slate-800/50 dark:hover:bg-slate-900/50 rounded px-1 transition-colors duration-200">
+          <span className="text-slate-600 dark:text-slate-700 mr-4 select-none w-6 text-right font-light">{i + 1}</span>
+          <span dangerouslySetInnerHTML={{ __html: line }} />
+        </div>
+      ))}
+    </div>
+    <div className="absolute top-2 right-2 opacity-0 group-hover:opacity-100 transition-opacity bg-slate-800 dark:bg-slate-900 px-2 py-1 rounded text-xs text-slate-400 dark:text-slate-500 border border-slate-700 dark:border-slate-800 pointer-events-none">
+      WLangage
+    </div>
+  </div>
+);
+
+// --- Sections ---
+
+const Navbar = ({ isDark, toggleTheme }) => {
+  const [isScrolled, setIsScrolled] = useState(false);
+  const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
+
+  useEffect(() => {
+    const handleScroll = () => setIsScrolled(window.scrollY > 20);
+    window.addEventListener('scroll', handleScroll);
+    return () => window.removeEventListener('scroll', handleScroll);
+  }, []);
+
+  return (
+    <nav className={`fixed top-0 w-full z-50 transition-all duration-500 ${isScrolled ? 'bg-white/80 dark:bg-slate-950/80 backdrop-blur-xl border-b border-slate-200/50 dark:border-slate-800/50 py-3 shadow-lg' : 'bg-transparent py-5'}`}>
+      <div className="max-w-7xl mx-auto px-6 flex justify-between items-center">
+        {/* Logo */}
+        <div className="flex items-center gap-2 group cursor-pointer" onClick={() => window.scrollTo(0,0)}>
+          <div className="relative w-10 h-10 flex items-center justify-center bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-lg group-hover:border-yellow-400/50 transition-all duration-300 shadow-lg shadow-black/5 dark:shadow-black/50 group-hover:shadow-yellow-400/20">
+            <Settings className="w-6 h-6 text-slate-500 dark:text-slate-400 group-hover:rotate-180 transition-transform duration-700 ease-in-out absolute" />
+            <Code className="w-4 h-4 text-yellow-500 dark:text-yellow-400 z-10" />
+          </div>
+          <span className="text-xl font-bold text-slate-800 dark:text-slate-100 tracking-tight group-hover:text-black dark:group-hover:text-white transition-colors">
+            Windev<span className="text-yellow-500 dark:text-yellow-400">Expert</span>
+          </span>
+        </div>
+
+        {/* Desktop Menu */}
+        <div className="hidden md:flex items-center gap-8">
+          {['Formations', 'Outils', 'Expertise', 'Tarifs'].map((item) => (
+             <a 
+               key={item} 
+               href={`#${item.toLowerCase()}`} 
+               className="relative text-sm font-medium text-slate-600 dark:text-slate-400 hover:text-yellow-600 dark:hover:text-yellow-400 transition-colors group"
+             >
+               {item}
+               <span className="absolute -bottom-1 left-0 w-0 h-0.5 bg-yellow-400 transition-all duration-300 group-hover:w-full"></span>
+             </a>
+          ))}
+        </div>
+
+        {/* CTA & Theme Toggle */}
+        <div className="hidden md:flex items-center gap-4">
+          <button 
+            onClick={toggleTheme}
+            className="p-2 rounded-lg text-slate-600 dark:text-slate-400 hover:bg-slate-100 dark:hover:bg-slate-800 transition-all duration-300 hover:rotate-12"
+            aria-label="Toggle Theme"
+          >
+            {isDark ? <Sun className="w-5 h-5" /> : <Moon className="w-5 h-5" />}
+          </button>
+          <div className="w-px h-6 bg-slate-200 dark:bg-slate-800"></div>
+          <button className="text-sm font-bold text-slate-600 dark:text-slate-300 hover:text-black dark:hover:text-white transition-colors">Connexion</button>
+          <Button variant="primary" className="py-2 px-4 text-sm">S'abonner</Button>
+        </div>
+
+        {/* Mobile Menu Button */}
+        <div className="flex md:hidden items-center gap-4">
+          <button 
+            onClick={toggleTheme}
+            className="p-2 text-slate-600 dark:text-slate-400"
+          >
+            {isDark ? <Sun className="w-5 h-5" /> : <Moon className="w-5 h-5" />}
+          </button>
+          <button className="text-slate-600 dark:text-slate-300 hover:text-black dark:hover:text-white" onClick={() => setMobileMenuOpen(!mobileMenuOpen)}>
+            {mobileMenuOpen ? <X /> : <Menu />}
+          </button>
+        </div>
+      </div>
+
+      {/* Mobile Menu */}
+      {mobileMenuOpen && (
+        <div className="md:hidden absolute top-full left-0 w-full bg-white dark:bg-slate-950 border-b border-slate-200 dark:border-slate-800 p-6 flex flex-col gap-4 shadow-2xl animate-in slide-in-from-top-5 duration-200">
+           <a href="#courses" onClick={() => setMobileMenuOpen(false)} className="text-slate-700 dark:text-slate-300 block py-2 hover:text-yellow-500 dark:hover:text-yellow-400">Formations</a>
+           <a href="#features" onClick={() => setMobileMenuOpen(false)} className="text-slate-700 dark:text-slate-300 block py-2 hover:text-yellow-500 dark:hover:text-yellow-400">Notre Outil</a>
+           <a href="#pricing" onClick={() => setMobileMenuOpen(false)} className="text-slate-700 dark:text-slate-300 block py-2 hover:text-yellow-500 dark:hover:text-yellow-400">Tarifs</a>
+           <hr className="border-slate-200 dark:border-slate-800" />
+           <Button variant="outline" className="w-full">Connexion</Button>
+           <Button variant="primary" className="w-full">S'abonner</Button>
+        </div>
+      )}
+    </nav>
+  );
+};
+
+const Hero = () => (
+  <section className="relative pt-32 pb-20 overflow-hidden bg-slate-50 dark:bg-slate-950 min-h-screen flex items-center transition-colors duration-500">
+    {/* Animated Background Blobs */}
+    <div className="absolute top-20 left-1/4 w-[500px] h-[500px] bg-indigo-500/10 dark:bg-indigo-500/20 rounded-full blur-[120px] animate-blob mix-blend-multiply dark:mix-blend-screen" />
+    <div className="absolute bottom-20 right-1/4 w-[500px] h-[500px] bg-yellow-400/20 dark:bg-yellow-400/10 rounded-full blur-[120px] animate-blob animation-delay-2000 mix-blend-multiply dark:mix-blend-screen" />
+    <div className="absolute top-1/2 left-1/2 transform -translate-x-1/2 -translate-y-1/2 w-[400px] h-[400px] bg-pink-500/10 dark:bg-pink-500/10 rounded-full blur-[120px] animate-blob animation-delay-4000 mix-blend-multiply dark:mix-blend-screen" />
+
+    <div className="max-w-7xl mx-auto px-6 grid lg:grid-cols-2 gap-16 items-center relative z-10">
+      
+      {/* Text Content */}
+      <RevealOnScroll className="space-y-8">
+        <SectionBadge>Nouvelle Plateforme 2025</SectionBadge>
+        <h1 className="text-5xl lg:text-7xl font-bold text-slate-900 dark:text-white leading-[1.1] tracking-tight">
+          Maîtrisez <br />
+          <span className="text-transparent bg-clip-text bg-gradient-to-r from-yellow-500 via-yellow-300 to-yellow-500 dark:from-yellow-400 dark:via-yellow-200 dark:to-yellow-400 text-gradient bg-[length:200%_auto]">
+            L'Architecture WinDev Moderne
+          </span>
+        </h1>
+        <p className="text-lg text-slate-600 dark:text-slate-400 max-w-xl leading-relaxed">
+          30 ans d'expertise PC Soft condensés. Passez du développement procédural à l'architecture objet et au développement multi-plateforme 
+          <span className="text-indigo-600 dark:text-indigo-400 font-mono text-sm mx-1 px-2 py-1 bg-indigo-50 dark:bg-indigo-500/10 rounded border border-indigo-200 dark:border-indigo-500/20 inline-block hover:scale-105 transition-transform cursor-default">Avancé</span>.
+        </p>
+        <div className="flex flex-col sm:flex-row gap-4">
+          <Button variant="primary">
+            <Play className="w-4 h-4 fill-current" /> Explorer les cours
+          </Button>
+          <Button variant="outline">
+            Voir le programme gratuit
+          </Button>
+        </div>
+        <div className="flex items-center gap-4 text-sm text-slate-500 pt-4 border-t border-slate-200 dark:border-slate-900 mt-4">
+          <div className="flex -space-x-3">
+            {[1,2,3,4].map(i => (
+              <div key={i} className="w-9 h-9 rounded-full bg-slate-100 dark:bg-slate-800 border-2 border-slate-50 dark:border-slate-950 flex items-center justify-center text-xs font-bold text-slate-500 dark:text-slate-400 hover:translate-y-[-4px] hover:z-10 transition-all duration-300 shadow-lg cursor-default">
+                {String.fromCharCode(64 + i)}
+              </div>
+            ))}
+          </div>
+          <p>Rejoint par <span className="text-slate-800 dark:text-slate-200 font-bold">1,240+ développeurs</span> cette semaine</p>
+        </div>
+      </RevealOnScroll>
+
+      {/* Visual Content */}
+      <RevealOnScroll delay={200} className="relative hidden lg:block">
+        {/* Floating Code Window */}
+        <div className="absolute -top-12 -left-12 w-full h-full bg-gradient-to-br from-yellow-400/5 to-transparent rounded-3xl blur-3xl"></div>
+        
+        <div className="relative bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-2xl shadow-2xl p-3 transform rotate-2 hover:rotate-0 transition-all duration-700 hover:shadow-yellow-400/20 hover:border-slate-300 dark:hover:border-slate-700 hover:scale-[1.02]">
+          <div className="bg-slate-50 dark:bg-slate-950 rounded-xl overflow-hidden border border-slate-200 dark:border-slate-800">
+             {/* Fake Window Header */}
+             <div className="bg-slate-100 dark:bg-slate-900 px-4 py-3 flex items-center justify-between border-b border-slate-200 dark:border-slate-800">
+               <div className="flex gap-2">
+                 <div className="w-3 h-3 rounded-full bg-red-500 hover:bg-red-400 transition-colors"></div>
+                 <div className="w-3 h-3 rounded-full bg-yellow-500 hover:bg-yellow-400 transition-colors"></div>
+                 <div className="w-3 h-3 rounded-full bg-green-500 hover:bg-green-400 transition-colors"></div>
+               </div>
+               <div className="text-xs text-slate-500 font-mono">WindevExpert Player - v3.0.0</div>
+             </div>
+             {/* Content */}
+             <div className="p-8 space-y-6">
+                <div className="flex items-center justify-between">
+                   <h3 className="text-slate-800 dark:text-slate-200 font-bold flex items-center gap-2 text-lg">
+                     <Lock className="w-5 h-5 text-green-500 dark:text-green-400" /> Mode Sécurisé
+                   </h3>
+                   <span className="text-xs text-yellow-600 dark:text-yellow-400 font-mono px-2 py-1 bg-yellow-400/10 rounded border border-yellow-400/20">Actif</span>
+                </div>
+                <div className="grid grid-cols-3 gap-6">
+                  <div className="col-span-2 space-y-4">
+                     <div className="h-40 bg-slate-200 dark:bg-slate-900 rounded-lg border border-slate-300 dark:border-slate-800 flex items-center justify-center relative overflow-hidden group cursor-pointer">
+                        <div className="absolute inset-0 bg-gradient-to-t from-slate-300/50 dark:from-slate-950 to-transparent opacity-50"></div>
+                        <Play className="w-16 h-16 text-slate-400 dark:text-slate-700 group-hover:text-yellow-500 dark:group-hover:text-yellow-400 group-hover:scale-110 transition-all duration-300 z-10" />
+                        <div className="absolute inset-0 bg-black/10 dark:bg-white/5 opacity-0 group-hover:opacity-100 transition-opacity"></div>
+                     </div>
+                     <div className="space-y-2">
+                        <div className="h-2 w-3/4 bg-slate-200 dark:bg-slate-800 rounded-full animate-pulse"></div>
+                        <div className="h-2 w-1/2 bg-slate-200 dark:bg-slate-800 rounded-full animate-pulse delay-75"></div>
+                     </div>
+                  </div>
+                  <div className="bg-white dark:bg-slate-900 rounded-lg p-4 border border-slate-200 dark:border-slate-800 flex flex-col gap-3 shadow-sm hover:shadow-md transition-shadow">
+                     <div className="text-xs text-slate-500 font-bold uppercase tracking-wider">Fichiers Sources</div>
+                     {[
+                       {name: 'Projet.wdp', icon: <Download className="w-4 h-4" />},
+                       {name: 'Donnees.FIC', icon: <Download className="w-4 h-4" />},
+                       {name: 'Mobile.WDM', icon: <Download className="w-4 h-4" />}
+                     ].map((file, idx) => (
+                       <div key={idx} className="flex items-center gap-3 text-xs text-indigo-600 dark:text-indigo-400 p-2 bg-slate-50 dark:bg-slate-950 rounded border border-slate-200 dark:border-slate-800 hover:border-indigo-400/50 hover:bg-indigo-50 dark:hover:bg-indigo-900/20 cursor-pointer transition-colors">
+                          {file.icon}
+                          <span className="font-mono">{file.name}</span>
+                       </div>
+                     ))}
+                  </div>
+                </div>
+             </div>
+          </div>
+        </div>
+      </RevealOnScroll>
+    </div>
+  </section>
+);
+
+const PlatformFeatures = () => {
+  const features = [
+    {
+      icon: <Download className="w-6 h-6 text-yellow-500 dark:text-yellow-400" />,
+      title: "Sources Téléchargeables",
+      desc: "Ne recopiez pas le code. Téléchargez les projets complets (.wdk, .wdc) et intégrez-les immédiatement."
+    },
+    {
+      icon: <Shield className="w-6 h-6 text-green-500 dark:text-green-400" />,
+      title: "Sécurité Maximale",
+      desc: "Vos données et votre progression sont chiffrées. Notre player natif garantit un environnement sain."
+    },
+    {
+      icon: <Users className="w-6 h-6 text-indigo-500 dark:text-indigo-400" />,
+      title: "Communauté Privée",
+      desc: "Rejoignez le Discord exclusif. Échangez avec d'autres experts et débloquez vos problèmes complexes."
+    },
+    {
+      icon: <Zap className="w-6 h-6 text-red-500 dark:text-red-400" />,
+      title: "Performance Extrême",
+      desc: "Une plateforme fluide, sans chargement infini. Conçue pour vous faire gagner du temps précieux."
+    }
+  ];
+
+  return (
+    <section id="features" className="py-24 bg-white dark:bg-slate-950 border-b border-slate-100 dark:border-slate-900 relative transition-colors duration-500">
+      <div className="absolute inset-0 bg-grid-slate-200/[0.4] dark:bg-grid-slate-900/[0.04] bg-[bottom_1px_center]"></div>
+      <div className="max-w-7xl mx-auto px-6 relative z-10">
+        <RevealOnScroll className="text-center mb-16">
+          <SectionBadge>Avantages</SectionBadge>
+          <h2 className="text-3xl md:text-5xl font-bold text-slate-900 dark:text-white mb-6">Tout pour réussir vos projets</h2>
+          <p className="text-slate-600 dark:text-slate-400 max-w-2xl mx-auto text-lg">Une boîte à outils complète pour transformer votre manière de développer.</p>
+        </RevealOnScroll>
+        <div className="grid md:grid-cols-2 lg:grid-cols-4 gap-8">
+          {features.map((feature, i) => (
+            <RevealOnScroll key={i} delay={i * 100} className="h-full">
+              <div className="bg-slate-50 dark:bg-slate-900/50 p-8 rounded-2xl border border-slate-200 dark:border-slate-800 hover:border-slate-300 dark:hover:border-slate-600 hover:bg-white dark:hover:bg-slate-900 transition-all hover:-translate-y-2 duration-300 group shadow-sm hover:shadow-xl h-full flex flex-col">
+                <div className="w-14 h-14 bg-white dark:bg-slate-950 rounded-xl flex items-center justify-center mb-6 border border-slate-200 dark:border-slate-800 group-hover:border-slate-300 dark:group-hover:border-slate-700 group-hover:shadow-lg transition-all duration-300 group-hover:scale-110">
+                  {feature.icon}
+                </div>
+                <h3 className="text-xl font-bold text-slate-900 dark:text-white mb-3 group-hover:text-yellow-600 dark:group-hover:text-yellow-400 transition-colors">{feature.title}</h3>
+                <p className="text-slate-600 dark:text-slate-400 leading-relaxed flex-grow">{feature.desc}</p>
+              </div>
+            </RevealOnScroll>
+          ))}
+        </div>
+      </div>
+    </section>
+  );
+};
+
+const SocialProof = () => (
+  <section className="py-10 border-y border-slate-200 dark:border-slate-800 bg-slate-50 dark:bg-slate-900/30 transition-colors duration-500 overflow-hidden">
+    <div className="max-w-7xl mx-auto px-6 text-center">
+      <RevealOnScroll>
+        <p className="text-sm font-mono text-slate-500 mb-8 uppercase tracking-[0.2em]">Technologies & Outils Maîtrisés</p>
+        <div className="flex flex-wrap justify-center items-center gap-8 md:gap-16 opacity-60">
+           {["WinDev 28", "WebDev 28", "WinDev Mobile", "PostgreSQL", "HFSQL C/S", "Docker", "WLangage"].map((logo, idx) => (
+             <span 
+               key={logo} 
+               className="text-lg md:text-xl font-bold text-slate-500 dark:text-slate-400 font-mono hover:text-slate-900 dark:hover:text-white hover:scale-110 transition-all duration-300 cursor-default grayscale hover:grayscale-0"
+               style={{ transitionDelay: `${idx * 50}ms` }}
+             >
+               {logo}
+             </span>
+           ))}
+        </div>
+      </RevealOnScroll>
+    </div>
+  </section>
+);
+
+const Problems = () => (
+  <section id="expertise" className="py-24 bg-slate-50 dark:bg-slate-950 transition-colors duration-500">
+    <div className="max-w-7xl mx-auto px-6">
+       <RevealOnScroll className="text-center mb-16">
+         <h2 className="text-3xl md:text-4xl font-bold text-slate-900 dark:text-white mb-6">Pourquoi se former maintenant ?</h2>
+         <p className="text-slate-600 dark:text-slate-400 max-w-2xl mx-auto text-lg">Le monde PC Soft évolue vite. Ne restez pas bloqué sur des pratiques obsolètes des années 2000.</p>
+       </RevealOnScroll>
+
+       <div className="grid md:grid-cols-3 gap-8">
+          <RevealOnScroll delay={0}>
+            <div className="bg-white dark:bg-slate-900 p-10 rounded-3xl border border-slate-200 dark:border-slate-800 hover:border-red-500/50 transition-all duration-500 group hover:shadow-[0_0_40px_rgba(239,68,68,0.15)] shadow-sm h-full hover:-translate-y-2">
+               <div className="w-14 h-14 bg-red-500/10 rounded-2xl flex items-center justify-center mb-8 group-hover:scale-110 group-hover:rotate-3 transition-transform duration-300 border border-red-500/20">
+                 <Monitor className="w-7 h-7 text-red-500" />
+               </div>
+               <h3 className="text-2xl font-bold text-slate-900 dark:text-white mb-4">Applications Vieillissantes</h3>
+               <p className="text-slate-600 dark:text-slate-400 leading-relaxed text-lg">Vos interfaces sont figées, le code est difficile à maintenir et vos clients demandent désormais du Web et du Mobile fluides.</p>
+            </div>
+          </RevealOnScroll>
+
+          <RevealOnScroll delay={150}>
+            <div className="bg-white dark:bg-slate-900 p-10 rounded-3xl border border-slate-200 dark:border-slate-800 hover:border-yellow-400/50 transition-all duration-500 group relative top-0 md:-top-6 shadow-xl shadow-yellow-400/5 hover:shadow-yellow-400/25 h-full hover:-translate-y-2">
+               <div className="absolute top-0 left-1/2 transform -translate-x-1/2 -translate-y-1/2 bg-yellow-400 text-slate-950 text-xs font-bold px-4 py-1 rounded-full uppercase tracking-wider shadow-lg animate-bounce">Focus</div>
+               <div className="w-14 h-14 bg-yellow-400/10 rounded-2xl flex items-center justify-center mb-8 group-hover:scale-110 group-hover:-rotate-3 transition-transform duration-300 border border-yellow-400/20">
+                 <Rocket className="w-7 h-7 text-yellow-500 dark:text-yellow-400" />
+               </div>
+               <h3 className="text-2xl font-bold text-slate-900 dark:text-white mb-4">Modernisation Agile</h3>
+               <p className="text-slate-600 dark:text-slate-400 leading-relaxed text-lg">Apprenez à injecter du moderne (API REST, OAuth) dans vos projets existants sans avoir à tout réécrire depuis zéro.</p>
+            </div>
+          </RevealOnScroll>
+
+          <RevealOnScroll delay={300}>
+            <div className="bg-white dark:bg-slate-900 p-10 rounded-3xl border border-slate-200 dark:border-slate-800 hover:border-indigo-500/50 transition-all duration-500 group hover:shadow-[0_0_40px_rgba(99,102,241,0.15)] shadow-sm h-full hover:-translate-y-2">
+               <div className="w-14 h-14 bg-indigo-500/10 rounded-2xl flex items-center justify-center mb-8 group-hover:scale-110 group-hover:rotate-6 transition-transform duration-300 border border-indigo-500/20">
+                 <Lock className="w-7 h-7 text-indigo-500" />
+               </div>
+               <h3 className="text-2xl font-bold text-slate-900 dark:text-white mb-4">Sécurité & Architecture</h3>
+               <p className="text-slate-600 dark:text-slate-400 leading-relaxed text-lg">Passez du mode "bricolage" au mode "architecte". Sécurisez vos données, structurez vos classes et maîtrisez le déploiement.</p>
+            </div>
+          </RevealOnScroll>
+       </div>
+    </div>
+  </section>
+);
+
+const Courses = () => {
+  const courses = [
+    {
+      title: "WinDev : Architecture Avancée",
+      level: "Expert",
+      version: "WD28",
+      price: "190€",
+      rating: "4.9",
+      students: 420,
+      color: "border-yellow-400",
+      codeSnippet: `Classe::Client est une Classe\n   PRIVÉ\n      _ID est un entier\n      _Nom est une chaîne\n   PUBLIC\n      Procedure Constructeur()`
+    },
+    {
+      title: "API REST avec WebDev",
+      level: "Intermédiaire",
+      version: "WB28",
+      price: "150€",
+      rating: "4.8",
+      students: 285,
+      color: "border-indigo-500",
+      codeSnippet: `PROCEDURE GetClients()\n  tabResult est un tableau de json\n  FichierVersTableau(tabResult, CLIENT)\n  RENVOYER JSON(tabResult)`
+    },
+    {
+      title: "Optimisation & Performance",
+      level: "Avancé",
+      version: "Expert",
+      price: "220€",
+      rating: "5.0",
+      students: 150,
+      color: "border-red-500",
+      codeSnippet: `TâcheParallèle est une TâcheParallèle\nTâcheParallèle = TâcheParallèleExécute(\n   ProcédureLourde, \n   tpoCopieLégèreContexteHFSQL\n)`
+    }
+  ];
+
+  return (
+    <section id="courses" className="py-24 bg-white dark:bg-slate-950 relative overflow-hidden transition-colors duration-500">
+      <div className="absolute top-1/2 left-0 w-full h-px bg-gradient-to-r from-transparent via-slate-200 dark:via-slate-800 to-transparent opacity-50"></div>
+      
+      <div className="max-w-7xl mx-auto px-6 relative z-10">
+        <RevealOnScroll className="flex flex-col md:flex-row justify-between items-end mb-16 gap-6">
+           <div className="max-w-2xl">
+              <SectionBadge>Catalogue</SectionBadge>
+              <h2 className="text-3xl md:text-5xl font-bold text-slate-900 dark:text-white mb-4">Formations à la une</h2>
+              <p className="text-slate-600 dark:text-slate-400 text-lg">Des cursus complets conçus pour un impact immédiat sur votre production.</p>
+           </div>
+           <Button variant="ghost" className="hidden md:flex hover:bg-slate-100 dark:hover:bg-slate-900 group">
+             Voir tout le catalogue <span className="inline-block transition-transform group-hover:translate-x-1 ml-1">&rarr;</span>
+           </Button>
+        </RevealOnScroll>
+
+        <div className="grid md:grid-cols-3 gap-8">
+           {courses.map((course, idx) => (
+             <RevealOnScroll key={idx} delay={idx * 150}>
+               <div className={`bg-slate-50 dark:bg-slate-900 rounded-2xl overflow-hidden border border-slate-200 dark:border-slate-800 hover:border-slate-400 dark:hover:border-slate-600 hover:shadow-2xl hover:shadow-black/20 dark:hover:shadow-black/50 transition-all duration-500 group flex flex-col hover:-translate-y-2 h-full`}>
+                  {/* Header Card */}
+                  <div className="h-56 bg-slate-100 dark:bg-slate-950 p-6 flex flex-col justify-between relative overflow-hidden group-hover:bg-white dark:group-hover:bg-slate-950/80 transition-colors">
+                     <div className={`absolute top-0 left-0 w-1 h-full ${course.color.replace('border', 'bg')} opacity-80 group-hover:opacity-100 transition-opacity`}></div>
+                     <div className="relative z-10">
+                        <div className="flex justify-between items-start mb-4">
+                           <span className={`text-[10px] font-bold px-2 py-1 rounded bg-slate-200 dark:bg-slate-800 text-slate-600 dark:text-slate-300 border border-slate-300 dark:border-slate-700 uppercase tracking-wide`}>{course.version}</span>
+                           <div className="flex items-center gap-1 text-yellow-600 dark:text-yellow-400 text-sm font-bold bg-yellow-400/10 px-2 py-1 rounded-full border border-yellow-400/20">
+                              <Star className="w-3 h-3 fill-current" /> {course.rating}
+                           </div>
+                        </div>
+                        <h3 className="text-2xl font-bold text-slate-900 dark:text-white leading-tight mb-2 group-hover:text-yellow-600 dark:group-hover:text-yellow-400 transition-colors">{course.title}</h3>
+                        <div className="text-xs text-slate-500 font-mono flex items-center gap-2">
+                          <Users className="w-3 h-3" /> {course.students} étudiants
+                        </div>
+                     </div>
+                     <div className="transform scale-90 origin-bottom-left opacity-80 group-hover:scale-100 group-hover:opacity-100 transition-all duration-300">
+                       <CodeBlock code={course.codeSnippet} />
+                     </div>
+                  </div>
+                  
+                  {/* Footer Card */}
+                  <div className="p-6 flex items-center justify-between border-t border-slate-200 dark:border-slate-800 bg-white dark:bg-slate-900 group-hover:bg-slate-50 dark:group-hover:bg-slate-800/50 transition-colors mt-auto">
+                     <div>
+                        <div className="text-xs text-slate-500 uppercase tracking-wide font-bold mb-1">Prix</div>
+                        <div className="text-2xl font-bold text-slate-900 dark:text-white">{course.price}</div>
+                     </div>
+                     <Button variant="outline" className="text-xs px-6 py-2.5 hover:bg-slate-900 hover:text-white dark:hover:bg-white dark:hover:text-black hover:border-transparent transition-all">
+                        Détails
+                     </Button>
+                  </div>
+               </div>
+             </RevealOnScroll>
+           ))}
+        </div>
+        
+        <div className="mt-12 md:hidden">
+          <Button variant="ghost" className="w-full border border-slate-200 dark:border-slate-800">Voir tout le catalogue &rarr;</Button>
+        </div>
+      </div>
+    </section>
+  );
+};
+
+const TechFeature = () => (
+  <section id="outil" className="py-24 bg-gradient-to-b from-slate-50 to-white dark:from-slate-950 dark:to-slate-900 border-t border-slate-200 dark:border-slate-900 transition-colors duration-500">
+    <div className="max-w-7xl mx-auto px-6">
+      <RevealOnScroll className="bg-white dark:bg-slate-950 rounded-[2rem] border border-slate-200 dark:border-slate-800 p-8 md:p-20 relative overflow-hidden shadow-2xl">
+         {/* Grid Pattern */}
+         <div className="absolute inset-0 opacity-10" style={{ backgroundImage: 'radial-gradient(#6366f1 1px, transparent 1px)', backgroundSize: '40px 40px' }}></div>
+         
+         <div className="relative z-10 grid lg:grid-cols-2 gap-20 items-center">
+            <div>
+               <div className="inline-flex items-center gap-2 px-4 py-1.5 rounded-full bg-indigo-50 dark:bg-indigo-500/10 border border-indigo-200 dark:border-indigo-500/20 text-indigo-600 dark:text-indigo-400 text-sm font-bold mb-8 shadow-lg shadow-indigo-500/10">
+                  <Terminal className="w-4 h-4" /> Exclusivité WindevExpert
+               </div>
+               <h2 className="text-4xl md:text-5xl font-bold text-slate-900 dark:text-white mb-8 leading-tight">Plus qu'une formation,<br/>un <span className="text-transparent bg-clip-text bg-gradient-to-r from-indigo-600 to-indigo-400 dark:from-indigo-400 dark:to-indigo-200">outil de travail</span>.</h2>
+               <p className="text-slate-600 dark:text-slate-400 text-lg mb-10 leading-relaxed">
+                 Nous avons développé notre propre lecteur natif optimisé pour vous garantir une expérience fluide, sécurisée et hors-ligne. Accédez à vos ressources et copiez les codes sources directement depuis l'interface.
+               </p>
+               <ul className="space-y-6 mb-10">
+                  {[
+                    "Mode Offline complet pour voyager",
+                    "Recherche instantanée dans le code source",
+                    "Sécurité maximale de vos données"
+                  ].map((item, i) => (
+                    <li key={i} className="flex items-center gap-4 text-slate-700 dark:text-slate-300 text-lg hover:translate-x-1 transition-transform cursor-default">
+                       <div className="w-8 h-8 rounded-full bg-indigo-50 dark:bg-indigo-500/10 flex items-center justify-center border border-indigo-200 dark:border-indigo-500/20 shadow-[0_0_10px_rgba(99,102,241,0.2)]">
+                          <Check className="w-4 h-4 text-indigo-600 dark:text-indigo-400" />
+                       </div>
+                       {item}
+                    </li>
+                  ))}
+               </ul>
+               <Button variant="primary">Télécharger le Player (Démo)</Button>
+            </div>
+            
+            <div className="relative group perspective-1000">
+               <div className="absolute -inset-4 bg-indigo-500/10 dark:bg-indigo-500/20 blur-[60px] rounded-full group-hover:bg-indigo-500/20 dark:group-hover:bg-indigo-500/30 transition-all duration-700"></div>
+               <img 
+                 src="https://images.unsplash.com/photo-1618477247222-ac5913054c90?auto=format&fit=crop&q=80&w=2800&ixlib=rb-4.0.3" 
+                 alt="Interface Player" 
+                 className="relative rounded-xl shadow-2xl border border-slate-200 dark:border-slate-700 bg-slate-900 w-full transform md:rotate-y-3 group-hover:rotate-y-0 group-hover:scale-[1.02] transition-all duration-500 z-10"
+               />
+               {/* Overlay technique */}
+               <div className="absolute -bottom-8 -left-8 bg-white/90 dark:bg-slate-800/95 backdrop-blur-md p-6 rounded-xl border border-slate-200 dark:border-slate-700 shadow-2xl font-mono text-xs text-indigo-700 dark:text-indigo-300 z-20 w-80 animate-in slide-in-from-bottom-5 duration-700 delay-300">
+                  <div className="flex items-center gap-2 mb-2 border-b border-slate-200 dark:border-slate-700 pb-2">
+                     <Terminal className="w-3 h-3 text-slate-400" /> 
+                     <span className="text-slate-600 dark:text-slate-400">Terminal</span>
+                  </div>
+                  <div className="space-y-1">
+                     <div><span className="text-pink-500 dark:text-pink-400">➜</span> <span className="text-cyan-600 dark:text-cyan-400">~</span> Génération de l'exécutable</div>
+                     <div className="text-slate-500 dark:text-slate-400 pl-4">Compilation des éléments du projet...</div>
+                     <div className="text-green-600 dark:text-green-400 pl-4 font-bold">Traitement terminé avec succès (1.2s)</div>
+                  </div>
+               </div>
+            </div>
+         </div>
+      </RevealOnScroll>
+    </div>
+  </section>
+);
+
+const Pricing = () => {
+  const plans = [
+    { name: "Junior", price: "29€", period: "/mois", desc: "Pour les curieux et débutants", features: ["Accès Streaming Web", "Support basique", "Mises à jour mensuelles"], cta: "Commencer", highlight: false },
+    { name: "Architecte", price: "49€", period: "/mois", desc: "Pour les pros en activité", features: ["Tout du plan Junior", "Accès Player Desktop (Offline)", "Téléchargement des Sources (.wdk)", "Live Q&A Mensuel"], cta: "Devenir Expert", highlight: true },
+    { name: "Lifetime", price: "990€", period: "une fois", desc: "L'investissement ultime", features: ["Accès à vie sans abo", "Discord 'Cercle Privé'", "Mentorat 1h offert", "Certificat Officiel"], cta: "Paiement Unique", highlight: false },
+  ];
+
+  return (
+    <section id="tarifs" className="py-24 bg-slate-50 dark:bg-slate-950 transition-colors duration-500">
+       <div className="max-w-7xl mx-auto px-6">
+          <RevealOnScroll className="text-center mb-16">
+             <h2 className="text-3xl md:text-5xl font-bold text-slate-900 dark:text-white mb-6">Investissez dans votre carrière</h2>
+             <p className="text-slate-600 dark:text-slate-400 text-lg max-w-2xl mx-auto">Des tarifs adaptés à votre ROI. Une astuce apprise ici peut vous sauver une semaine de développement.</p>
+          </RevealOnScroll>
+
+          <div className="grid md:grid-cols-3 gap-8 items-center max-w-6xl mx-auto">
+             {plans.map((plan, i) => (
+               <RevealOnScroll key={i} delay={i * 150} className="h-full">
+                 <div className={`relative p-8 rounded-3xl border transition-all duration-500 h-full flex flex-col ${plan.highlight ? 'bg-white dark:bg-slate-900 border-yellow-400 shadow-[0_0_50px_rgba(250,204,21,0.15)] scale-105 z-10' : 'bg-white dark:bg-slate-950 border-slate-200 dark:border-slate-800 hover:border-slate-300 dark:hover:border-slate-700 hover:-translate-y-2'}`}>
+                    {plan.highlight && (
+                      <div className="absolute -top-5 left-1/2 transform -translate-x-1/2 bg-yellow-400 text-slate-950 text-xs font-bold px-4 py-1.5 rounded-full uppercase tracking-wider shadow-lg animate-pulse">
+                         Recommandé
+                      </div>
+                    )}
+                    <h3 className="text-2xl font-bold text-slate-900 dark:text-white mb-2">{plan.name}</h3>
+                    <div className="flex items-baseline gap-1 mb-6">
+                       <span className="text-5xl font-bold text-slate-900 dark:text-white tracking-tight">{plan.price}</span>
+                       <span className="text-slate-500 font-medium">{plan.period}</span>
+                    </div>
+                    <p className="text-slate-600 dark:text-slate-400 text-sm mb-8 pb-8 border-b border-slate-100 dark:border-slate-800">{plan.desc}</p>
+                    
+                    <ul className="space-y-4 mb-10 flex-grow">
+                       {plan.features.map((feat, k) => (
+                         <li key={k} className="flex items-start gap-3 text-sm text-slate-700 dark:text-slate-300">
+                            <Check className={`w-5 h-5 ${plan.highlight ? 'text-yellow-500 dark:text-yellow-400' : 'text-slate-400 dark:text-slate-500'} shrink-0`} />
+                            {feat}
+                         </li>
+                       ))}
+                    </ul>
+
+                    <Button variant={plan.highlight ? 'primary' : 'outline'} className="w-full py-4 text-base mt-auto">
+                       {plan.cta}
+                    </Button>
+                 </div>
+               </RevealOnScroll>
+             ))}
+          </div>
+       </div>
+    </section>
+  );
+};
+
+const Footer = () => (
+  <footer className="bg-slate-50 dark:bg-slate-950 border-t border-slate-200 dark:border-slate-900 pt-20 pb-10 transition-colors duration-500">
+     <div className="max-w-7xl mx-auto px-6">
+        <div className="grid md:grid-cols-4 gap-12 mb-16">
+           <div className="col-span-1 md:col-span-2 space-y-6">
+              <div className="flex items-center gap-2">
+                 <div className="relative w-8 h-8 flex items-center justify-center bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded group-hover:border-yellow-400/50 transition-colors">
+                    <Settings className="w-5 h-5 text-slate-500 dark:text-slate-400 absolute" />
+                    <Code className="w-3 h-3 text-yellow-500 dark:text-yellow-400 z-10" />
+                 </div>
+                 <span className="text-2xl font-bold text-slate-800 dark:text-slate-100">Windev<span className="text-yellow-500 dark:text-yellow-400">Expert</span></span>
+              </div>
+              <p className="text-slate-600 dark:text-slate-500 text-base leading-relaxed max-w-sm">
+                 La plateforme de référence pour les développeurs PC Soft qui veulent franchir un cap technique. Architecture, Web, Mobile & Modernisation.
+              </p>
+              <div className="flex gap-4">
+                 {[1,2,3].map(i => (
+                   <div key={i} className="w-10 h-10 rounded-full bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 flex items-center justify-center hover:border-yellow-400/50 hover:text-yellow-500 dark:hover:text-yellow-400 text-slate-500 transition-all cursor-pointer shadow-sm hover:scale-110">
+                      <MessageSquare className="w-4 h-4" />
+                   </div>
+                 ))}
+              </div>
+           </div>
+           
+           <div>
+              <h4 className="text-slate-900 dark:text-white font-bold mb-6 text-lg">Liens Rapides</h4>
+              <ul className="space-y-3 text-sm text-slate-600 dark:text-slate-500">
+                 <li><a href="#" className="hover:text-yellow-600 dark:hover:text-yellow-400 transition-colors hover:translate-x-1 inline-block">Formations</a></li>
+                 <li><a href="#" className="hover:text-yellow-600 dark:hover:text-yellow-400 transition-colors hover:translate-x-1 inline-block">Notre Outil</a></li>
+                 <li><a href="#" className="hover:text-yellow-600 dark:hover:text-yellow-400 transition-colors hover:translate-x-1 inline-block">Blog Technique</a></li>
+                 <li><a href="#" className="hover:text-yellow-600 dark:hover:text-yellow-400 transition-colors hover:translate-x-1 inline-block">Connexion</a></li>
+              </ul>
+           </div>
+           
+           <div>
+              <h4 className="text-slate-900 dark:text-white font-bold mb-6 text-lg">Légal</h4>
+              <ul className="space-y-3 text-sm text-slate-600 dark:text-slate-500">
+                 <li><a href="#" className="hover:text-yellow-600 dark:hover:text-yellow-400 transition-colors hover:translate-x-1 inline-block">CGV & CGU</a></li>
+                 <li><a href="#" className="hover:text-yellow-600 dark:hover:text-yellow-400 transition-colors hover:translate-x-1 inline-block">Mentions Légales</a></li>
+                 <li><a href="#" className="hover:text-yellow-600 dark:hover:text-yellow-400 transition-colors hover:translate-x-1 inline-block">Politique de Confidentialité</a></li>
+                 <li><a href="#" className="hover:text-yellow-600 dark:hover:text-yellow-400 transition-colors hover:translate-x-1 inline-block">Cookies</a></li>
+              </ul>
+           </div>
+        </div>
+        
+        <div className="border-t border-slate-200 dark:border-slate-900 pt-8 flex flex-col md:flex-row justify-between items-center gap-4">
+           <p className="text-slate-500 dark:text-slate-600 text-sm">© 2025 WindevExpert. Tous droits réservés.</p>
+           <div className="flex items-center gap-2 text-xs text-slate-600 dark:text-slate-700 font-mono bg-slate-100 dark:bg-slate-900 px-3 py-1 rounded-full border border-slate-200 dark:border-slate-800">
+              <Cpu className="w-3 h-3" />
+              <span>Conçu pour les Experts</span>
+           </div>
+        </div>
+     </div>
+  </footer>
+);
+
+export default function LandingPage() {
+  const [isDark, setIsDark] = useState(true);
+
+  const toggleTheme = () => {
+    setIsDark(!isDark);
+  };
+
+  return (
+    <div className={`${isDark ? 'dark' : ''} bg-slate-50 dark:bg-slate-950 min-h-screen font-sans selection:bg-yellow-400 selection:text-black transition-colors duration-500`}>
+      <GlobalStyles />
+      <Navbar isDark={isDark} toggleTheme={toggleTheme} />
+      <Hero />
+      <PlatformFeatures />
+      <SocialProof />
+      <Problems />
+      <Courses />
+      <TechFeature />
+      <Pricing />
+      <Footer />
+    </div>
+  );
+}

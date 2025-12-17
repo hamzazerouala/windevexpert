@@ -21,7 +21,7 @@ impl Config {
     pub fn from_env() -> Result<Self> {
         let _ = dotenv();
         let database_url = env::var("DATABASE_URL").context("DATABASE_URL must be set")?;
-        let jwt_secret = env::var("JWT_SECRET").context("JWT_SECRET must be set")?;
+        let jwt_secret = env::var("JWT_SECRET").unwrap_or_else(|_| "change_me_default_secret".to_string());
         let port = env::var("PORT").ok().and_then(|v| v.parse().ok()).unwrap_or(8080);
         let stripe_keys = env::var("STRIPE_KEYS").ok();
         let stripe_webhook_secret = env::var("STRIPE_WEBHOOK_SECRET").ok();
